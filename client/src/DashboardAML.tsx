@@ -1,31 +1,37 @@
 import React, { useState, useEffect } from 'react';
 import NetworkGraph from './components/NetworkGraph';
+import FinancialOverview from './FinancialOverview';
+import AnalystReasoning from './AnalystReasoning';
+import TransactionAnalytics from './TransactionAnalytics';
+import NeedWantSave from './NeedWantSave';
+import SpendingInsights from './SpendingInsights';
+import TopBar from './TopBar';
 
 interface AnalysisResult {
-    company_name: string;
-    risk_score: number;
-    risk_level: string;
-    chain_of_thought: string;
-    recommended_action: string;
+  risk_score: string;
+  risk_level: string;
+  chain_of_thought: string;
+  recommended_action?: string;
+  company_name?: string;
 }
 
-interface CompanyData {
-    name: string;
-    registration_number?: string;
-    country?: string;
-    status?: string;
-    address?: string;
-    directors?: string[];
-}
+const getRiskLevel = (riskScore: string): 'HIGH' | 'MEDIUM' | 'LOW' => {
+  const lower = riskScore.toLowerCase();
+  if (lower.includes('high')) return 'HIGH';
+  if (lower.includes('medium')) return 'MEDIUM';
+  return 'LOW';
+};
 
 const DashboardAML: React.FC = () => {
   const [companyName, setCompanyName] = useState('');
-  const [taskId, setTaskId] = useState<string | null>(null);
+  const [submittedName, setSubmittedName] = useState('NEXUS TRADING CORP');
   const [result, setResult] = useState<AnalysisResult | null>(null);
-  const [companyData, setCompanyData] = useState<CompanyData | null>(null);
   const [loading, setLoading] = useState(false);
   const [status, setStatus] = useState<string>('');
   const [error, setError] = useState<string | null>(null);
+  const [showJSON, setShowJSON] = useState(false);
+  const [taskId, setTaskId] = useState<string | null>(null);
+  const [companyData, setCompanyData] = useState<any>(null);
 
   // Polling effect for Celery task status
   useEffect(() => {
@@ -72,6 +78,7 @@ const DashboardAML: React.FC = () => {
     setError(null);
     setResult(null);
     setCompanyData(null);
+    setShowJSON(false);
 
     try {
       if (syncMode) {
@@ -87,6 +94,7 @@ const DashboardAML: React.FC = () => {
         // Shape: { status: 'SUCCESS', result: { analysis, company_data } }
         setResult(data.result.analysis);
         setCompanyData(data.result.company_data);
+        setSubmittedName(companyName.toUpperCase());
         setStatus('SUCCESS');
         setLoading(false);
       } else {
@@ -99,56 +107,150 @@ const DashboardAML: React.FC = () => {
         if (!response.ok) throw new Error('Failed to start analysis');
         const data = await response.json();
         setTaskId(data.task_id);
+        setSubmittedName(companyName.toUpperCase());
         setStatus('PENDING');
       }
+
     } catch (err: any) {
       setError(err.message || 'Unknown error');
       setLoading(false);
     }
   };
 
+  const riskLevel = result ? getRiskLevel(result.risk_score) : 'HIGH';
+
   return (
-    <div className="p-6 max-w-4xl mx-auto space-y-8">
-      <div className="bg-white rounded-lg shadow-md p-6 border border-slate-200">
-        <h1 className="text-2xl font-bold mb-6 text-slate-800 tracking-tight">AML Compliance Dashboard</h1>
-        <form onSubmit={handleSubmit} className="flex flex-col sm:flex-row gap-4">
-          <div className="flex-1 relative">
-            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-              <svg className="h-5 w-5 text-gray-400" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
-                <path fillRule="evenodd" d="M8 4a4 4 0 100 8 4 4 0 000-8zM2 8a6 6 0 1110.89 3.476l4.817 4.817a1 1 0 01-1.414 1.414l-4.816-4.816A6 6 0 012 8z" clipRule="evenodd" />
-              </svg>
-            </div>
+    <div style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
+      {/* Top Bar — includes the search form */}
+      <TopBar
+        entityName={submittedName}
+        riskLevel={riskLevel}
+        onViewJSON={() => setShowJSON(v => !v)}
+      >
+        {/* The form is embedded in TopBar children so tests can find it */}
+        <form
+          onSubmit={handleSubmit}
+          style={{ display: 'flex', gap: '8px', alignItems: 'center', marginLeft: '8px' }}
+        >
+          <div style={{ position: 'relative' }}>
+            <svg
+              style={{ position: 'absolute', top: '50%', left: '10px', transform: 'translateY(-50%)', color: '#9ca3af' }}
+              width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"
+            >
+              <circle cx="11" cy="11" r="8" /><line x1="21" y1="21" x2="16.65" y2="16.65" />
+            </svg>
             <input
               type="text"
               value={companyName}
-              onChange={(e) => setCompanyName(e.target.value)}
+              onChange={e => setCompanyName(e.target.value)}
               placeholder="Enter company name..."
-              className="block w-full pl-10 pr-3 py-3 border border-gray-300 rounded-lg leading-5 bg-white placeholder-gray-500 focus:outline-none focus:placeholder-gray-400 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 sm:text-sm transition-all shadow-sm"
               required
+              style={{
+                paddingLeft: '32px',
+                paddingRight: '12px',
+                paddingTop: '7px',
+                paddingBottom: '7px',
+                border: '1px solid #e4e9f2',
+                borderRadius: '8px',
+                fontSize: '12px',
+                color: '#374151',
+                outline: 'none',
+                width: '220px',
+                fontFamily: 'Inter, sans-serif',
+              }}
             />
           </div>
           <button
             type="submit"
             disabled={loading}
-            className="inline-flex justify-center items-center px-6 py-3 border border-transparent text-sm font-medium rounded-lg shadow-sm text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+            style={{
+              padding: '7px 16px',
+              borderRadius: '8px',
+              border: 'none',
+              background: loading ? '#93c5fd' : '#3b82f6',
+              color: '#fff',
+              fontSize: '12px',
+              fontWeight: 600,
+              cursor: loading ? 'not-allowed' : 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '6px',
+              fontFamily: 'Inter, sans-serif',
+              transition: 'background 0.15s',
+            }}
           >
             {loading ? (
               <>
-                <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                <svg style={{ animation: 'spin 1s linear infinite' }} width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3">
+                  <path d="M21 12a9 9 0 1 1-6.219-8.56" />
                 </svg>
                 {status || 'Processing...'}
               </>
             ) : 'Submit'}
           </button>
         </form>
-        {error && (
-          <div className="mt-4 p-4 bg-red-50 border-l-4 border-red-500 text-red-700 rounded-r-md flex items-start">
-            <svg className="h-5 w-5 text-red-500 mr-2 mt-0.5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
-              <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
-            </svg>
-            <p className="text-sm font-medium">{error}</p>
+      </TopBar>
+
+      {/* Error Banner */}
+      {error && (
+        <div style={{
+          margin: '12px 24px 0',
+          padding: '10px 16px',
+          background: '#fef2f2',
+          border: '1px solid #fecaca',
+          borderRadius: '8px',
+          color: '#dc2626',
+          fontSize: '12px',
+          display: 'flex',
+          alignItems: 'center',
+          gap: '8px',
+        }}>
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>
+          {error}
+        </div>
+      )}
+
+      {/* Main Content */}
+      <div style={{ flex: 1, overflowY: 'auto', padding: '20px 24px' }} className="scrollbar-thin">
+        {/* Financial Overview */}
+        <div style={{ marginBottom: '20px' }}>
+          <FinancialOverview />
+        </div>
+
+        {/* Middle Row: Analyst | Transaction Analytics | NWS + Spending */}
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1.1fr 1fr', gap: '16px', marginBottom: '20px', alignItems: 'start' }}>
+          {/* Analyst Reasoning */}
+          <AnalystReasoning chainOfThought={result?.chain_of_thought} />
+
+          {/* Transaction Analytics */}
+          <TransactionAnalytics />
+
+          {/* Right Column: Need-Want-Save + Spending Insights */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+            <NeedWantSave />
+            <SpendingInsights />
+          </div>
+        </div>
+
+
+        {/* Raw JSON Modal */}
+        {showJSON && result && (
+          <div
+            className="slide-in"
+            style={{
+              marginTop: '16px',
+              background: '#1a2235',
+              borderRadius: '12px',
+              border: '1px solid #2a3a52',
+              padding: '16px 20px',
+            }}
+          >
+            <div style={{ fontSize: '11px', fontWeight: 700, color: '#60a5fa', marginBottom: '10px', letterSpacing: '0.1em' }}>
+              RAW JSON OUTPUT
+            </div>
+            <pre style={{ margin: 0, color: '#c8d3e6', fontFamily: 'monospace', fontSize: '12px', lineHeight: 1.6, overflowX: 'auto' }}>
+              {JSON.stringify(result, null, 2)}
+            </pre>
           </div>
         )}
       </div>
@@ -172,7 +274,7 @@ const DashboardAML: React.FC = () => {
                 : result.risk_level === 'MEDIUM' ? 'bg-yellow-500'
                 : 'bg-green-500'
               }`}></span>
-              {result.risk_level}
+              {result.risk_level || result.risk_score}
             </div>
           </div>
           <div className="p-6 space-y-8">
@@ -201,7 +303,7 @@ const DashboardAML: React.FC = () => {
                 <svg className="w-4 h-4 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" /></svg>
                 Recommended Action
               </h3>
-              <p className="text-sm font-semibold text-slate-800 bg-slate-50 border border-slate-200 rounded-lg px-4 py-2 inline-block">{result.recommended_action}</p>
+              <p className="text-sm font-semibold text-slate-800 bg-slate-50 border border-slate-200 rounded-lg px-4 py-2 inline-block">{(result as any).recommended_action}</p>
             </div>
 
             <div>
@@ -210,7 +312,7 @@ const DashboardAML: React.FC = () => {
                 Network Visualization
               </h3>
               <NetworkGraph 
-                companyName={companyData?.name || result.company_name} 
+                companyName={companyData?.name || (result as any).company_name} 
                 directors={companyData?.directors}
                 address={companyData?.address}
               />
@@ -229,6 +331,19 @@ const DashboardAML: React.FC = () => {
           </div>
         </div>
       )}
+
+      <style>{`
+        @keyframes spin {
+          from { transform: rotate(0deg); }
+          to { transform: rotate(360deg); }
+        }
+        @keyframes status-pulse {
+          0% { transform: scale(0.95); opacity: 0.8; }
+          50% { transform: scale(1.05); opacity: 1; }
+          100% { transform: scale(0.95); opacity: 0.8; }
+        }
+      `}</style>
+
     </div>
   );
 };
