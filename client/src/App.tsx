@@ -1,5 +1,8 @@
+import { Routes, Route } from 'react-router-dom';
 import DashboardAML from './DashboardAML';
 import Sidebar from './Sidebar';
+import NetworkView from './views/NetworkView';
+import OsintView from './views/OsintView';
 
 function App() {
   return (
@@ -20,7 +23,11 @@ function App() {
         overflow: 'hidden',
         background: '#f0f2f7',
       }}>
-        <DashboardAML />
+        <Routes>
+          <Route path="/" element={<DashboardAML />} />
+          <Route path="/network" element={<NetworkView />} />
+          <Route path="/osint" element={<OsintView />} />
+        </Routes>
       </div>
     </div>
   );

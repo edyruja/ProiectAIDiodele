@@ -1,9 +1,10 @@
 import React from 'react';
+import { Link, useLocation } from 'react-router-dom';
 
 interface NavItem {
   icon: React.ReactNode;
   label: string;
-  active?: boolean;
+  to: string;
 }
 
 interface StatusItem {
@@ -131,16 +132,16 @@ const Sidebar: React.FC = () => {
       {/* Navigation */}
       <nav style={{ flex: 1, overflowY: 'auto', padding: '12px 0' }} className="scrollbar-thin">
         <SectionLabel label="AGENT ECOSYSTEM" />
-        <NavLink icon={<OrchestratorIcon />} label="Orchestrator Hub" />
-        <NavLink icon={<AnalystIcon />} label="Analyst Agent (CoT)" />
+        <NavLink icon={<OrchestratorIcon />} label="Orchestrator Hub" to="/agents/orchestrator" />
+        <NavLink icon={<AnalystIcon />} label="Analyst Agent (CoT)" to="/agents/analyst" />
 
         <SectionLabel label="INVESTIGATION" />
-        <NavLink icon={<DashboardIcon />} label="Customer Dashboard" active />
-        <NavLink icon={<NetworkIcon />} label="Network Graph (React Flow)" />
-        <NavLink icon={<OsintIcon />} label="OSINT Data Bridge" />
+        <NavLink icon={<DashboardIcon />} label="Customer Dashboard" to="/" />
+        <NavLink icon={<NetworkIcon />} label="Network Graph (React Flow)" to="/network" />
+        <NavLink icon={<OsintIcon />} label="OSINT Data Bridge" to="/osint" />
 
         <SectionLabel label="INFRASTRUCTURE" />
-        <NavLink icon={<VectorIcon />} label="Vector Store (MCP)" />
+        <NavLink icon={<VectorIcon />} label="Vector Store (MCP)" to="/vector-store" />
       </nav>
 
       {/* Status Bar */}
@@ -178,25 +179,32 @@ const SectionLabel: React.FC<{ label: string }> = ({ label }) => (
   }}>{label}</div>
 );
 
-const NavLink: React.FC<NavItem> = ({ icon, label, active }) => (
-  <div style={{
-    display: 'flex',
-    alignItems: 'center',
-    gap: '10px',
-    padding: '8px 16px',
-    borderRadius: '6px',
-    margin: '1px 8px',
-    background: active ? 'var(--sidebar-active-bg)' : 'transparent',
-    color: active ? '#e2e8f0' : 'var(--sidebar-text)',
-    cursor: 'pointer',
-    fontSize: '13px',
-    fontWeight: active ? 600 : 400,
-    borderLeft: active ? '3px solid var(--sidebar-accent)' : '3px solid transparent',
-    transition: 'all 0.15s ease',
-  }}>
-    <span style={{ opacity: active ? 1 : 0.6, flexShrink: 0 }}>{icon}</span>
-    <span style={{ lineHeight: 1.3 }}>{label}</span>
-  </div>
-);
+const NavLink: React.FC<NavItem> = ({ icon, label, to }) => {
+  const location = useLocation();
+  const active = location.pathname === to;
+
+  return (
+    <Link to={to} style={{ textDecoration: 'none' }}>
+      <div style={{
+        display: 'flex',
+        alignItems: 'center',
+        gap: '10px',
+        padding: '8px 16px',
+        borderRadius: '6px',
+        margin: '1px 8px',
+        background: active ? 'var(--sidebar-active-bg)' : 'transparent',
+        color: active ? '#e2e8f0' : 'var(--sidebar-text)',
+        cursor: 'pointer',
+        fontSize: '13px',
+        fontWeight: active ? 600 : 400,
+        borderLeft: active ? '3px solid var(--sidebar-accent)' : '3px solid transparent',
+        transition: 'all 0.15s ease',
+      }}>
+        <span style={{ opacity: active ? 1 : 0.6, flexShrink: 0 }}>{icon}</span>
+        <span style={{ lineHeight: 1.3 }}>{label}</span>
+      </div>
+    </Link>
+  );
+};
 
 export default Sidebar;
