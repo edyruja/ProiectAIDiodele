@@ -23,8 +23,45 @@ const DashboardAML: React.FC = () => {
   const [submittedName, setSubmittedName] = useState('NEXUS TRADING CORP');
   const [result, setResult] = useState<AnalysisResult | null>(null);
   const [loading, setLoading] = useState(false);
+  const [status, setStatus] = useState<string>('');
   const [error, setError] = useState<string | null>(null);
   const [showJSON, setShowJSON] = useState(false);
+
+  // Polling effect for Celery task status
+  useEffect(() => {
+    let interval: NodeJS.Timeout;
+
+    if (taskId && loading) {
+      interval = setInterval(async () => {
+        try {
+          const response = await fetch(`http://localhost:8000/analysis-status/${taskId}`);
+          if (!response.ok) throw new Error('Failed to poll status');
+          
+          const data = await response.json();
+          setStatus(data.status);
+
+          if (data.status === 'SUCCESS') {
+            setResult(data.result.analysis);
+            setCompanyData(data.result.company_data);
+            setLoading(false);
+            setTaskId(null);
+            clearInterval(interval);
+          } else if (data.status === 'FAILURE') {
+            setError(data.error || 'Task failed on backend');
+            setLoading(false);
+            setTaskId(null);
+            clearInterval(interval);
+          }
+        } catch (err: any) {
+          setError(err.message);
+          setLoading(false);
+          clearInterval(interval);
+        }
+      }, 2000); // Poll every 2 seconds
+    }
+
+    return () => clearInterval(interval);
+  }, [taskId, loading]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -32,7 +69,7 @@ const DashboardAML: React.FC = () => {
     setError(null);
     setShowJSON(false);
     try {
-      const response = await fetch('/analyze-company', {
+      const response = await fetch('http://localhost:8000/analyze-company', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ company_name: companyName }),
@@ -43,7 +80,6 @@ const DashboardAML: React.FC = () => {
       setSubmittedName(companyName.toUpperCase());
     } catch (err: any) {
       setError(err.message || 'Unknown error');
-    } finally {
       setLoading(false);
     }
   };
@@ -115,7 +151,7 @@ const DashboardAML: React.FC = () => {
                 <svg style={{ animation: 'spin 1s linear infinite' }} width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3">
                   <path d="M21 12a9 9 0 1 1-6.219-8.56" />
                 </svg>
-                Processing...
+                {status || 'Processing...'}
               </>
             ) : 'Submit'}
           </button>

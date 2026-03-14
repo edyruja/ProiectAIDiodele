@@ -53,20 +53,20 @@
 ---
 
 ## Phase 3: Database Integration (PostgreSQL & Vector Store)
-**Status:** [ ] Pending
+**Status:** [x] Complete
 
 **Sub-agent 1: QA / Test Engineer**
-- [ ] Create integration tests in `test_database.py`.
-- [ ] Test 1: Verify PostgreSQL connection and schema creation for `CompanyProfile`.
-- [ ] Test 2: Verify initialization of the Vector DB client (Qdrant/Pinecone) and ability to insert a dummy vector.
-- [ ] Verification: Tests fail (RED).
+- [x] Create integration tests in `test_database.py`.
+- [x] Test 1: Verify PostgreSQL connection and schema creation for `CompanyProfile`.
+- [x] Test 2: Verify initialization of the Vector DB client (Qdrant/Pinecone) and ability to insert a dummy vector.
+- [x] Verification: Tests fail (RED).
 
 **Sub-agent 2: Developer**
-- [ ] Configure SQLAlchemy for PostgreSQL connection.
-- [ ] Create basic ORM models (`models.py`).
-- [ ] Create `vector_store.py` module (including MCP support for agents).
-- [ ] Verification: Tests pass (GREEN).
-- [ ] **Git Action:** Request human confirmation for commit/push.
+- [x] Configure SQLAlchemy for PostgreSQL connection.
+- [x] Create basic ORM models (`models.py`).
+- [x] Create `vector_store.py` module (including MCP support for agents).
+- [x] Verification: Tests pass (GREEN).
+- [x] **Git Action:** Request human confirmation for commit/push.
 
 ---
 
@@ -88,20 +88,20 @@
 ---
 
 ## Phase 5: AI Agent Orchestration (LLM Routing)
-**Status:** [ ] Pending
+**Status:** [x] Completed
 
 **Sub-agent 1: QA / Test Engineer**
-- [ ] Create `test_llm_router.py` file.
-- [ ] Test 1: Send a test prompt to the orchestrator and verify if it correctly calls the `fetch_company_data` utility (Tool Calling).
-- [ ] Test 2: Verify if the Analyst Agent returns the final response strictly in the Pydantic-defined JSON format.
-- [ ] Verification: Tests fail (RED).
+- [x] Create `test_llm_router.py` file.
+- [x] Test 1: Send a test prompt to the orchestrator and verify if it correctly calls the `fetch_company_data` utility (Tool Calling).
+- [x] Test 2: Verify if the Analyst Agent returns the final response strictly in the Pydantic-defined JSON format.
+- [x] Verification: Tests fail (RED).
 
 **Sub-agent 2: Developer**
-- [ ] Configure OpenRouter integration in `agent_core.py`.
-- [ ] Implement LLM Routing system (Orchestrator + Analyst) and Chain of Thought.
-- [ ] Create POST `/analyze-company` endpoint that links agents to the API.
-- [ ] Verification: Tests pass (GREEN).
-- [ ] **Git Action:** Request human confirmation for commit/push.
+- [x] Configure OpenRouter integration in `agent_core.py` (stub + real implementation).
+- [x] Implement LLM Routing system (Orchestrator + Analyst) and Chain of Thought.
+- [x] Create POST `/analyze-company` endpoint that links agents to the API.
+- [x] Verification: Tests pass (GREEN).
+- [x] **Git Action:** Request human confirmation for commit/push.
 
 ---
 
