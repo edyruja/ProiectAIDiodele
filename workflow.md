@@ -39,15 +39,15 @@
 **Status:** [ ] Pending
 
 **Sub-agent 1: QA / Test Engineer**
-- [ ] Create `test_main.py` file using `pytest`.
-- [ ] Write Test 1: Verify if the health check endpoint (`GET /health`) returns status 200 and JSON `{"status": "ok"}`.
-- [ ] Verification: Tests fail (RED).
+- [x] Create `test_main.py` file using `pytest`.
+- [x] Write Test 1: Verify if the health check endpoint (`GET /health`) returns status 200 and JSON `{"status": "ok"}`.
+- [x] Verification: Tests fail (RED).
 
 **Sub-agent 2: Developer**
-- [ ] Initialize Python virtual environment and create `requirements.txt` (FastAPI, Uvicorn, Pytest, CORS middleware).
-- [ ] Create `main.py` and configure basic FastAPI instance. **Important:** Configure CORS to allow requests from the Frontend port.
-- [ ] Implement `/health` endpoint.
-- [ ] Verification: All tests pass (GREEN).
+- [x] Initialize Python virtual environment and create `requirements.txt` (FastAPI, Uvicorn, Pytest, CORS middleware).
+- [x] Create `main.py` and configure basic FastAPI instance. **Important:** Configure CORS to allow requests from the Frontend port.
+- [x] Implement `/health` endpoint.
+- [x] Verification: All tests pass (GREEN).
 - [ ] **Git Action:** Request human confirmation for commit/push on branch `feature/init-fastapi`.
 
 ---
