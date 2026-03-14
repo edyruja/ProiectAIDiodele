@@ -23,6 +23,9 @@ from typing import Any
 
 from pydantic import BaseModel, ValidationError
 
+from database import SessionLocal
+from models import CompanyProfile
+from vector_store import VectorStoreClient
 from tools.company_fetcher import fetch_company_data  # noqa: F401 (re-exported for patching)
 
 
@@ -143,6 +146,10 @@ class Orchestrator:
             company_data = fetch_company_data(company_name)
             analyst = AnalystAgent()
             analysis = analyst.analyse(company_data)
+            
+            # Phase 8: Database Persistence
+            self._save_to_db(analysis, company_data)
+            
             return {
                 "company_data": company_data,
                 "analysis": analysis.model_dump(),
@@ -174,6 +181,28 @@ class Orchestrator:
                 return match.group(1).strip()
         return None
 
+    def _save_to_db(self, analysis: AnalystResponse, company_data: dict[str, Any]) -> None:
+        """Persist the analysis results to the PostgreSQL database."""
+        db = SessionLocal()
+        try:
+            profile = CompanyProfile(
+                company_name=analysis.company_name,
+                registration_number=company_data.get("registration_number"),
+                country=company_data.get("country"),
+                risk_score=analysis.risk_score / 100.0,  # Convert to 0.0 - 1.0 range
+                risk_label=analysis.risk_level,
+                risk_explanation=analysis.chain_of_thought,
+                status=company_data.get("status"),
+                address=company_data.get("address"),
+            )
+            db.add(profile)
+            db.commit()
+        except Exception:
+            db.rollback()
+            # In a production system, we would log this error.
+        finally:
+            db.close()
+
 
 # ---------------------------------------------------------------------------
 # AnalystAgent – calls the LLM and parses its output into AnalystResponse
@@ -198,9 +227,33 @@ class AnalystAgent:
             ValueError: If the LLM response is not valid JSON.
             pydantic.ValidationError: If required fields are missing or have wrong types.
         """
+        # Phase 8: RAG Injection
+        vector_client = VectorStoreClient()
+        # In a real system, we'd generate an embedding for the company name or profile
+        # For the prototype, we use a dummy zero-vector if needed, or just search by name
+        # if the vector store supported it. Here we simulate the RAG step.
+        historical_context = ""
+        try:
+            # Attempt a search (using a dummy vector for the prototype)
+            results = vector_client.search(
+                collection="company_embeddings",
+                query_vector=[0.0] * 128,  # Mock vector size
+                top_k=2
+            )
+            if results:
+                historical_context = "\nHistorical context from previous investigations:\n"
+                for res in results:
+                    p = res.get("payload", {})
+                    historical_context += f"- {p.get('company_name')}: Risk {p.get('risk_score')}\n"
+        except Exception:
+            pass # Fail gracefully if vector store is unavailable
+
         prompt = self._SYSTEM_PROMPT_TEMPLATE.format(
             company_data=json.dumps(company_data, ensure_ascii=False, indent=2)
         )
+        if historical_context:
+            prompt += historical_context
+            
         raw: str = call_llm(prompt)
 
         try:

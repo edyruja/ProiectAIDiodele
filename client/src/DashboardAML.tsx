@@ -1,29 +1,86 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import NetworkGraph from './components/NetworkGraph';
+
+interface AnalysisResult {
+    company_name: string;
+    risk_score: number;
+    risk_level: string;
+    chain_of_thought: string;
+    recommended_action: string;
+}
+
+interface CompanyData {
+    name: string;
+    registration_number?: string;
+    country?: string;
+    status?: string;
+    address?: string;
+    directors?: string[];
+}
 
 const DashboardAML: React.FC = () => {
   const [companyName, setCompanyName] = useState('');
-  const [result, setResult] = useState<{ risk_score: string; chain_of_thought: string } | null>(null);
+  const [taskId, setTaskId] = useState<string | null>(null);
+  const [result, setResult] = useState<AnalysisResult | null>(null);
+  const [companyData, setCompanyData] = useState<CompanyData | null>(null);
   const [loading, setLoading] = useState(false);
+  const [status, setStatus] = useState<string>('');
   const [error, setError] = useState<string | null>(null);
+
+  // Polling effect for Celery task status
+  useEffect(() => {
+    let interval: NodeJS.Timeout;
+
+    if (taskId && loading) {
+      interval = setInterval(async () => {
+        try {
+          const response = await fetch(`http://localhost:8000/analysis-status/${taskId}`);
+          if (!response.ok) throw new Error('Failed to poll status');
+          
+          const data = await response.json();
+          setStatus(data.status);
+
+          if (data.status === 'SUCCESS') {
+            setResult(data.result.analysis);
+            setCompanyData(data.result.company_data);
+            setLoading(false);
+            setTaskId(null);
+            clearInterval(interval);
+          } else if (data.status === 'FAILURE') {
+            setError(data.error || 'Task failed on backend');
+            setLoading(false);
+            setTaskId(null);
+            clearInterval(interval);
+          }
+        } catch (err: any) {
+          setError(err.message);
+          setLoading(false);
+          clearInterval(interval);
+        }
+      }, 2000); // Poll every 2 seconds
+    }
+
+    return () => clearInterval(interval);
+  }, [taskId, loading]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
     setError(null);
     try {
-      const response = await fetch('/analyze-company', {
+      const response = await fetch('http://localhost:8000/analyze-company', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ company_name: companyName })
       });
       if (!response.ok) {
-        throw new Error('Failed to fetch data');
+        throw new Error('Failed to start analysis');
       }
       const data = await response.json();
-      setResult(data);
+      setTaskId(data.task_id);
+      setStatus('PENDING');
     } catch (err: any) {
       setError(err.message || 'Unknown error');
-    } finally {
       setLoading(false);
     }
   };
@@ -59,7 +116,7 @@ const DashboardAML: React.FC = () => {
                   <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
                   <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                 </svg>
-                Processing...
+                {status || 'Processing...'}
               </>
             ) : 'Submit'}
           </button>
@@ -82,27 +139,52 @@ const DashboardAML: React.FC = () => {
               Analysis Results
             </h2>
             <div className={`px-4 py-1.5 rounded-full text-sm font-bold flex items-center gap-2 ${
-              result.risk_score.toLowerCase().includes('high') || result.risk_score.includes('High')
+              result.risk_level === 'HIGH' || result.risk_level === 'CRITICAL'
                 ? 'bg-red-100 text-red-700 border border-red-200 shadow-sm' 
-                : result.risk_score.toLowerCase().includes('medium') || result.risk_score.includes('Medium')
+                : result.risk_level === 'MEDIUM'
                 ? 'bg-yellow-100 text-yellow-700 border border-yellow-200 shadow-sm'
                 : 'bg-green-100 text-green-700 border border-green-200 shadow-sm'
             }`}>
               <span className={`w-2.5 h-2.5 rounded-full animate-pulse ${
-                result.risk_score.toLowerCase().includes('high') || result.risk_score.includes('High') ? 'bg-red-500' 
-                : result.risk_score.toLowerCase().includes('medium') || result.risk_score.includes('Medium') ? 'bg-yellow-500'
+                result.risk_level === 'HIGH' || result.risk_level === 'CRITICAL' ? 'bg-red-500' 
+                : result.risk_level === 'MEDIUM' ? 'bg-yellow-500'
                 : 'bg-green-500'
               }`}></span>
-              {result.risk_score}
+              {result.risk_level}
             </div>
           </div>
           <div className="p-6 space-y-8">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+              <div>
+                <h3 className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-2 flex items-center">
+                  <svg className="w-4 h-4 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" /></svg>
+                  AML Risk Score
+                </h3>
+                <div className="flex items-baseline gap-2">
+                  <p className="text-3xl font-extrabold text-gray-900">{result.risk_score}</p>
+                  <p className="text-gray-400 font-medium">/ 100</p>
+                </div>
+              </div>
+              <div>
+                <h3 className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-2 flex items-center">
+                  <svg className="w-4 h-4 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" /></svg>
+                  Registration Details
+                </h3>
+                <p className="text-sm font-medium text-slate-700">{companyData?.registration_number || 'N/A'}</p>
+                <p className="text-xs text-slate-500">{companyData?.country || 'Unknown Location'}</p>
+              </div>
+            </div>
+
             <div>
-              <h3 className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-2 flex items-center">
-                <svg className="w-4 h-4 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" /></svg>
-                AML Risk Score
+              <h3 className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-3 flex items-center">
+                <svg className="w-4 h-4 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 20l4-4m0 0l4 4m-4-4v12" /></svg>
+                Network Visualization
               </h3>
-              <p className="text-xl font-bold text-gray-900">{result.risk_score}</p>
+              <NetworkGraph 
+                companyName={companyData?.name || result.company_name} 
+                directors={companyData?.directors}
+                address={companyData?.address}
+              />
             </div>
             <div>
               <h3 className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-3 flex items-center">
