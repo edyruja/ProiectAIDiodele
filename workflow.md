@@ -106,7 +106,6 @@
 ---
 
 ## Phase 6: Basic Frontend (Integration and Testing Interface)
-**Status:** [/] In Progress
 
 **Sub-agent 1: QA / Test Engineer**
 - [x] Create `DashboardAML.test.jsx` file.
@@ -115,8 +114,3 @@
 - [x] Verification: Tests fail (RED).
 
 **Sub-agent 2: Developer**
-- [ ] Create `DashboardAML.jsx` component.
-- [ ] Implement fetch call to the `/analyze-company` backend endpoint.
-- [ ] Build a simple UI to display the JSON returned by the backend in a human-readable format (e.g., red badges for high risk, text formatting for agent explanation).
-- [ ] Verification: Complete E2E functionality. Tests pass (GREEN).
-- [ ] **Git Action:** Request final human confirmation for commit/push for v0.1.
