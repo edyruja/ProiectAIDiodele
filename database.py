@@ -23,8 +23,11 @@ Usage:
 """
 
 import os
+from dotenv import load_dotenv
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker, declarative_base
+
+load_dotenv()
 
 # ---------------------------------------------------------------------------
 # Configuration
@@ -42,14 +45,20 @@ DATABASE_URL: str = os.getenv(
 # or use pytest fixtures that mock the engine.
 # ---------------------------------------------------------------------------
 
-engine = create_engine(
-    DATABASE_URL,
-    # Pool settings tuned for a FastAPI/async-friendly setup
-    pool_pre_ping=True,       # auto-reconnect after DB restart
-    pool_size=5,
-    max_overflow=10,
-    echo=False,               # set to True for SQL debugging
-)
+if DATABASE_URL.startswith("sqlite"):
+    engine = create_engine(
+        DATABASE_URL,
+        connect_args={"check_same_thread": False},
+        echo=False,
+    )
+else:
+    engine = create_engine(
+        DATABASE_URL,
+        pool_pre_ping=True,       # auto-reconnect after DB restart
+        pool_size=5,
+        max_overflow=10,
+        echo=False,               # set to True for SQL debugging
+    )
 
 # ---------------------------------------------------------------------------
 # Session factory

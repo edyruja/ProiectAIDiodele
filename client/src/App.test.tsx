@@ -1,5 +1,6 @@
 import { render } from '@testing-library/react';
 import { describe, it, expect, vi } from 'vitest';
+import { MemoryRouter } from 'react-router-dom';
 import App from './App';
 import React from 'react';
 
@@ -11,6 +12,10 @@ vi.mock('./components/NetworkGraph', () => ({
 
 describe('App Component', () => {
   it('renders without crashing', () => {
-    expect(() => render(<App />)).not.toThrow();
+    expect(() => render(
+      <MemoryRouter>
+        <App />
+      </MemoryRouter>
+    )).not.toThrow();
   });
 });

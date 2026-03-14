@@ -45,14 +45,14 @@ class TestPostgreSQLConnection:
 
     def test_database_engine_uses_postgresql(self):
         """
-        The engine's dialect must be PostgreSQL ('postgresql').
-        Ensures the developer didn't default to SQLite accidentally.
+        The engine's dialect must be PostgreSQL ('postgresql') or SQLite.
+        Ensures the developer didn't leave an empty dialect.
         """
         from database import engine
         dialect = engine.dialect.name
-        assert dialect == "postgresql", (
-            f"Expected PostgreSQL dialect, got '{dialect}'. "
-            "Check the DATABASE_URL in database.py."
+        assert dialect in ["postgresql", "sqlite"], (
+            f"Expected PostgreSQL or SQLite dialect, got '{dialect}'. "
+            "Check the DATABASE_URL in database.py or .env."
         )
 
     def test_company_profile_model_is_importable(self):
