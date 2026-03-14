@@ -3,3 +3,7 @@ uvicorn
 pytest
 httpx
 pydantic
+sqlalchemy
+psycopg2-binary
+qdrant-client
+python-dotenv

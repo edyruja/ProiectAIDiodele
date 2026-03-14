@@ -106,17 +106,17 @@
 ---
 
 ## Phase 6: Basic Frontend (Integration and Testing Interface)
-**Status:** [ ] Pending
+**Status:** [x] Complete
 
 **Sub-agent 1: QA / Test Engineer**
-- [ ] Create `DashboardAML.test.jsx` file.
-- [ ] Test 1: Verify if an input form exists to enter a company name.
-- [ ] Test 2: Submit mock data and verify if the UI displays "AML Risk Score" and "Explanation (Chain of Thought)" sections.
-- [ ] Verification: Tests fail (RED).
+- [x] Create `DashboardAML.test.jsx` file.
+- [x] Test 1: Verify if an input form exists to enter a company name.
+- [x] Test 2: Submit mock data and verify if the UI displays "AML Risk Score" and "Explanation (Chain of Thought)" sections.
+- [x] Verification: Tests fail (RED).
 
 **Sub-agent 2: Developer**
-- [ ] Create `DashboardAML.jsx` component.
-- [ ] Implement fetch call to the `/analyze-company` backend endpoint.
-- [ ] Build a simple UI to display the JSON returned by the backend in a human-readable format (e.g., red badges for high risk, text formatting for agent explanation).
-- [ ] Verification: Complete E2E functionality. Tests pass (GREEN).
-- [ ] **Git Action:** Request final human confirmation for commit/push for v0.1.
+- [x] Create `DashboardAML.jsx` component.
+- [x] Implement fetch call to the `/analyze-company` backend endpoint.
+- [x] Build a simple UI to display the JSON returned by the backend in a human-readable format (e.g., red badges for high risk, text formatting for agent explanation).
+- [x] Verification: Complete E2E functionality. Tests pass (GREEN).
+- [x] **Git Action:** Request final human confirmation for commit/push for v0.1.
