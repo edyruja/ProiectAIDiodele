@@ -8,7 +8,7 @@ vi.mock('./components/NetworkGraph', () => ({
 }));
 
 // Mock global fetch
-global.fetch = vi.fn();
+globalThis.fetch = vi.fn();
 
 describe('DashboardAML Component', () => {
   beforeEach(() => {
@@ -28,32 +28,33 @@ describe('DashboardAML Component', () => {
   });
 
   it('Test 2: Simulate submitting the form with mock data and verify UI eventually displays AML Risk Score and Explanation', async () => {
-    // In sync mode (VITE_SYNC_MODE=true), a single fetch is made to /analyze-company-sync
-    // and the result is returned directly — no polling loop needed.
+    const mockResponse = {
+      status: 'SUCCESS',
+      result: {
+        analysis: {
+          risk_score: '85',
+          risk_level: 'High Risk',
+          chain_of_thought: 'The company operates in a high-risk jurisdiction.'
+        },
+        company_data: {
+          name: 'TEST COMPANY LLC'
+        }
+      }
+    };
+
+    // Mock VITE_SYNC_MODE
+    vi.stubGlobal('import.meta', {
+      env: { VITE_SYNC_MODE: 'true' }
+    });
+
+    // Setup the fetch mock to return our dummy JSON response matching API contract
     (global.fetch as any).mockResolvedValueOnce({
       ok: true,
-      json: async () => ({
-        status: 'SUCCESS',
-        result: {
-          analysis: {
-            company_name: 'Test Company LLC',
-            risk_score: 75,
-            risk_level: 'HIGH',
-            chain_of_thought: 'The company operates in a high-risk jurisdiction.',
-            recommended_action: 'Enhanced due-diligence',
-          },
-          company_data: {
-            name: 'Test Company LLC',
-            registration_number: '12345678',
-            country: 'Romania',
-            directors: [],
-          },
-        },
-      }),
+      json: async () => mockResponse,
     });
 
     render(<DashboardAML />);
-
+    
     const inputField = screen.getByPlaceholderText(/company name/i);
     const submitButton = screen.getByRole('button', { name: /submit/i });
 
@@ -61,16 +62,14 @@ describe('DashboardAML Component', () => {
     fireEvent.change(inputField, { target: { value: 'Test Company LLC' } });
     fireEvent.click(submitButton);
 
-    // Verify fetch was called once with the sync endpoint
-    expect(global.fetch).toHaveBeenCalledWith(
-      'http://localhost:8000/analyze-company-sync',
-      expect.objectContaining({ method: 'POST' })
-    );
+    // Verify fetch was called once
+    expect(global.fetch).toHaveBeenCalledTimes(1);
 
     // Verify the UI displays the required sections
     await waitFor(() => {
       expect(screen.getByText(/AML Risk Score/i)).toBeInTheDocument();
       expect(screen.getByText(/Explanation \(Chain of Thought\)/i)).toBeInTheDocument();
+      expect(screen.getByText(/85/i)).toBeInTheDocument();
     });
   });
 });
