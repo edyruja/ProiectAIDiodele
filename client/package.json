@@ -1,8 +1,12 @@
 {
   "name": "client",
   "version": "1.0.0",
+  "type": "module",
   "description": "AML Frontend Client",
   "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview",
     "test": "vitest"
   },
   "keywords": [],
@@ -30,6 +34,7 @@
     "vitest": "^4.1.0"
   },
   "dependencies": {
+    "@tailwindcss/postcss": "^4.2.1",
     "@xyflow/react": "^12.10.1"
   }
 }

@@ -63,16 +63,20 @@ def _call_openrouter_stub(prompt: str) -> str:
     company_match = re.search(r"company(?:\s*name)?[:\s]+([A-Za-z0-9 &.,'-]+)", prompt, re.I)
     company_name = company_match.group(1).strip() if company_match else "Unknown Company"
 
+    # Deterministic but dynamic score based on name length/hash for visual variety
+    name_hash = sum(ord(c) for c in company_name)
+    risk_score = (name_hash % 60) + 10  # 10 - 70 range
+
     payload = {
         "company_name": company_name,
-        "risk_score": 20,
-        "risk_level": "LOW",
+        "risk_score": risk_score,
+        "risk_level": "HIGH" if risk_score > 50 else ("MEDIUM" if risk_score > 30 else "LOW"),
         "chain_of_thought": (
-            "No sanctions hits detected. "
-            "Directors have no adverse media. "
-            "Registration appears valid."
+            f"Automated risk assessment for {company_name}. "
+            "Analysis based on registration data and mock sanctions screening. "
+            "No direct hits found in this limited prototype run."
         ),
-        "recommended_action": "Standard due-diligence review.",
+        "recommended_action": "Enhanced due-diligence" if risk_score > 50 else "Standard review",
     }
     return json.dumps(payload)
 

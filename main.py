@@ -65,3 +65,30 @@ def get_analysis_status(task_id: str):
         response_data["error"] = str(result.info)
         
     return response_data
+
+
+# ---------------------------------------------------------------------------
+# DEV / TESTING – /analyze-company-sync (no Redis, no Celery required)
+# ---------------------------------------------------------------------------
+
+@app.post("/analyze-company-sync")
+def analyze_company_sync(request: AnalyzeRequest):
+    """Run the AML analysis synchronously in-process.
+    
+    This endpoint skips Celery/Redis entirely and is intended for
+    local development and testing only. The result is returned directly
+    in the response, matching the same shape as a polled SUCCESS result.
+    """
+    if not request.company_name.strip():
+        raise HTTPException(status_code=422, detail="company_name must not be empty.")
+
+    try:
+        prompt = f"Please analyse {request.company_name} for AML risk."
+        orchestrator = Orchestrator()
+        result = orchestrator.run(prompt)
+        return {
+            "status": "SUCCESS",
+            "result": result,
+        }
+    except Exception as exc:
+        raise HTTPException(status_code=500, detail=str(exc))

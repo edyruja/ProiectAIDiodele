@@ -51,12 +51,14 @@ def fetch_company_data(company_name: str) -> dict[str, Any]:
 
 def _query_registry(company_name: str) -> dict[str, Any]:
     """Mock registry query.  Replace with real HTTP calls in production."""
+    # Deterministic dynamic data
+    reg_num = f"RO{sum(ord(c) for c in company_name) % 99999999:08d}"
     return {
         "name": company_name,
         "status": "active",
-        "directors": ["Jane Doe", "John Smith"],
-        "registration_number": "RO12345678",
+        "directors": ["Jane Doe", "John Smith"] if len(company_name) % 2 == 0 else ["Alice Vane", "Bob Ross"],
+        "registration_number": reg_num,
         "country": "RO",
-        "address": "Str. Exemplu nr. 1, București",
+        "address": f"Str. {company_name} nr. {len(company_name)}, București",
         "sanctions_hits": [],
     }

@@ -29,7 +29,7 @@ const DashboardAML: React.FC = () => {
 
   // Polling effect for Celery task status
   useEffect(() => {
-    let interval: NodeJS.Timeout;
+    let interval: ReturnType<typeof setInterval>;
 
     if (taskId && loading) {
       interval = setInterval(async () => {
@@ -63,22 +63,44 @@ const DashboardAML: React.FC = () => {
     return () => clearInterval(interval);
   }, [taskId, loading]);
 
+  // Set VITE_SYNC_MODE=true in .env.local to bypass Redis/Celery for local dev
+  const syncMode = import.meta.env.VITE_SYNC_MODE === 'true';
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
     setError(null);
+    setResult(null);
+    setCompanyData(null);
+
     try {
-      const response = await fetch('http://localhost:8000/analyze-company', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ company_name: companyName })
-      });
-      if (!response.ok) {
-        throw new Error('Failed to start analysis');
+      if (syncMode) {
+        // ── SYNC MODE ── no Redis/Celery needed, result comes back directly
+        setStatus('PROCESSING');
+        const response = await fetch('http://localhost:8000/analyze-company-sync', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ company_name: companyName })
+        });
+        if (!response.ok) throw new Error('Failed to run analysis');
+        const data = await response.json();
+        // Shape: { status: 'SUCCESS', result: { analysis, company_data } }
+        setResult(data.result.analysis);
+        setCompanyData(data.result.company_data);
+        setStatus('SUCCESS');
+        setLoading(false);
+      } else {
+        // ── ASYNC MODE ── requires Redis + Celery worker running
+        const response = await fetch('http://localhost:8000/analyze-company', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ company_name: companyName })
+        });
+        if (!response.ok) throw new Error('Failed to start analysis');
+        const data = await response.json();
+        setTaskId(data.task_id);
+        setStatus('PENDING');
       }
-      const data = await response.json();
-      setTaskId(data.task_id);
-      setStatus('PENDING');
     } catch (err: any) {
       setError(err.message || 'Unknown error');
       setLoading(false);
@@ -173,6 +195,13 @@ const DashboardAML: React.FC = () => {
                 <p className="text-sm font-medium text-slate-700">{companyData?.registration_number || 'N/A'}</p>
                 <p className="text-xs text-slate-500">{companyData?.country || 'Unknown Location'}</p>
               </div>
+            </div>
+            <div>
+              <h3 className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-2 flex items-center">
+                <svg className="w-4 h-4 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" /></svg>
+                Recommended Action
+              </h3>
+              <p className="text-sm font-semibold text-slate-800 bg-slate-50 border border-slate-200 rounded-lg px-4 py-2 inline-block">{result.recommended_action}</p>
             </div>
 
             <div>

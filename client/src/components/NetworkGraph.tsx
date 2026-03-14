@@ -1,6 +1,7 @@
 import React, { useMemo } from 'react';
 import {
   ReactFlow,
+  ReactFlowProvider,
   Background,
   Controls,
   Node,
@@ -78,16 +79,18 @@ const NetworkGraph: React.FC<NetworkGraphProps> = ({ companyName, directors = []
   }, [directors, address]);
 
   return (
-    <div style={{ width: '100%', height: '400px', background: '#fcfcfc', borderRadius: '12px', border: '1px solid #e2e8f0' }}>
-      <ReactFlow
-        nodes={nodes}
-        edges={edges}
-        fitView
-      >
-        <Background color="#aaa" gap={16} />
-        <Controls />
-      </ReactFlow>
-    </div>
+    <ReactFlowProvider>
+      <div style={{ width: '100%', height: '400px', background: '#fcfcfc', borderRadius: '12px', border: '1px solid #e2e8f0' }}>
+        <ReactFlow
+          nodes={nodes}
+          edges={edges}
+          fitView
+        >
+          <Background color="#aaa" gap={16} />
+          <Controls />
+        </ReactFlow>
+      </div>
+    </ReactFlowProvider>
   );
 };
 
