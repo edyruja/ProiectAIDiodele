@@ -71,19 +71,19 @@
 ---
 
 ## Phase 4: Data Pipeline & OSINT Tooling (Extraction)
-**Status:** [ ] Pending
+**Status:** [x] Completed
 
 **Sub-agent 1: QA / Test Engineer**
-- [ ] Create `test_tools.py` file.
-- [ ] Test 1: Verify `fetch_company_data()` function with valid input.
-- [ ] Test 2: Verify geocoding/address validation function.
-- [ ] Verification: Tests fail (RED).
+- [x] Create `test_tools.py` file.
+- [x] Test 1: Verify `fetch_company_data()` function with valid input.
+- [x] Test 2: Verify geocoding/address validation function.
+- [x] Verification: Tests fail (RED).
 
 **Sub-agent 2: Developer**
-- [ ] Create `tools/` folder and implement API query scripts (commercial registers, sanctions databases).
-- [ ] Implement data extraction logic.
-- [ ] Verification: Tests pass (GREEN).
-- [ ] **Git Action:** Request human confirmation for commit/push.
+- [x] Create `tools/` folder and implement API query scripts (commercial registers, sanctions databases).
+- [x] Implement data extraction logic.
+- [x] Verification: Tests pass (GREEN).
+- [x] **Git Action:** Request human confirmation for commit/push.
 
 ---
 
