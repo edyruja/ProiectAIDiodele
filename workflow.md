@@ -106,13 +106,13 @@
 ---
 
 ## Phase 6: Basic Frontend (Integration and Testing Interface)
-**Status:** [ ] Pending
+**Status:** [/] In Progress
 
 **Sub-agent 1: QA / Test Engineer**
-- [ ] Create `DashboardAML.test.jsx` file.
-- [ ] Test 1: Verify if an input form exists to enter a company name.
-- [ ] Test 2: Submit mock data and verify if the UI displays "AML Risk Score" and "Explanation (Chain of Thought)" sections.
-- [ ] Verification: Tests fail (RED).
+- [x] Create `DashboardAML.test.jsx` file.
+- [x] Test 1: Verify if an input form exists to enter a company name.
+- [x] Test 2: Submit mock data and verify if the UI displays "AML Risk Score" and "Explanation (Chain of Thought)" sections.
+- [x] Verification: Tests fail (RED).
 
 **Sub-agent 2: Developer**
 - [ ] Create `DashboardAML.jsx` component.
