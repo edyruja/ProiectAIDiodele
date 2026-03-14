@@ -1,8 +1,11 @@
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
+from celery.result import AsyncResult
+from fastapi.responses import JSONResponse
 
 from agent_core import Orchestrator
+from worker import celery_app, run_osint_analysis
 
 app = FastAPI(title="AML Antigravity API", version="0.1.0")
 
@@ -31,17 +34,34 @@ class AnalyzeRequest(BaseModel):
 
 @app.post("/analyze-company")
 def analyze_company(request: AnalyzeRequest):
-    """Run an AML analysis on the specified company.
+    """Submit a company analysis to be run in the background.
 
-    Triggers the Orchestrator, which:
-      1. Calls fetch_company_data() to retrieve registry & sanctions data.
-      2. Passes the data to AnalystAgent, which queries the LLM.
-      3. Returns a validated AnalystResponse JSON object.
+    Returns immediately with a task_id so the frontend can poll for completion.
     """
     if not request.company_name.strip():
         raise HTTPException(status_code=422, detail="company_name must not be empty.")
 
-    prompt = f"Please analyse {request.company_name} for AML risk."
-    orchestrator = Orchestrator()
-    result = orchestrator.run(prompt)
-    return result
+    task = run_osint_analysis.delay(request.company_name)
+    
+    return {
+        "message": "Analysis started in background.",
+        "task_id": task.id
+    }
+
+
+@app.get("/analysis-status/{task_id}")
+def get_analysis_status(task_id: str):
+    """Poll for the status of a scheduled AML analysis task."""
+    result = AsyncResult(task_id, app=celery_app)
+    
+    response_data = {
+        "task_id": task_id,
+        "status": result.status
+    }
+    
+    if result.status == "SUCCESS":
+        response_data["result"] = result.result
+    elif result.status == "FAILURE":
+        response_data["error"] = str(result.info)
+        
+    return response_data

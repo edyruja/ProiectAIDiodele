@@ -7,3 +7,5 @@ sqlalchemy
 psycopg2-binary
 qdrant-client
 python-dotenv
+celery
+redis
