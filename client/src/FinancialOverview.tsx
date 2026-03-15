@@ -9,19 +9,6 @@ interface Metric {
   subLabelColor?: string;
 }
 
-const metrics: Metric[][] = [
-  [
-    { label: 'Monthly Income', value: '$14,500', delta: '+2.4%', deltaPositive: true },
-    { label: 'Monthly Spending', value: '$38,100', delta: '+145%', deltaPositive: false, subLabel: 'Anomaly Detected', subLabelColor: '#ef4444' },
-    { label: 'Net Cash Flow', value: '-$23,600', delta: '-310%', deltaPositive: false },
-  ],
-  [
-    { label: 'Avg Income (6M)', value: '$14,200', delta: 'Stable baseline', deltaPositive: null },
-    { label: 'Avg Spending (6M)', value: '$12,800', delta: 'Anomaly Detected', deltaPositive: false, subLabelColor: '#ef4444' },
-    { label: 'Spending Median', value: '$11,500', delta: '+1.2%', deltaPositive: true },
-  ],
-];
-
 const TrendUpIcon = () => (
   <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
     <polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/>
@@ -44,7 +31,107 @@ const DBIcon = () => (
   </svg>
 );
 
-const FinancialOverview: React.FC = () => {
+interface FinancialOverviewProps {
+  companyData?: {
+    revenue?: number;
+    average_monthly_spend?: number;
+  } | null;
+  companies?: Array<{
+    revenue?: number;
+    average_monthly_spend?: number;
+  }>;
+}
+
+const median = (values: number[]): number => {
+  if (values.length === 0) return 0;
+  const sorted = [...values].sort((a, b) => a - b);
+  const mid = Math.floor(sorted.length / 2);
+  if (sorted.length % 2 === 0) {
+    return (sorted[mid - 1] + sorted[mid]) / 2;
+  }
+  return sorted[mid];
+};
+
+const formatMoney = (value: number): string => {
+  const absolute = Math.round(Math.abs(value));
+  const formatted = '$' + absolute.toLocaleString('en-US');
+  return value < 0 ? `-${formatted}` : formatted;
+};
+
+const FinancialOverview: React.FC<FinancialOverviewProps> = ({ companyData, companies = [] }) => {
+  const monthlyIncome = (companyData?.revenue || 0) / 12;
+  const monthlySpend = companyData?.average_monthly_spend || 0;
+  const netCashFlow = monthlyIncome - monthlySpend;
+
+  const datasetIncomes = companies
+    .map((company) => (company.revenue || 0) / 12)
+    .filter((value) => value > 0);
+  const datasetSpends = companies
+    .map((company) => company.average_monthly_spend || 0)
+    .filter((value) => value > 0);
+
+  const avgIncome = datasetIncomes.length
+    ? datasetIncomes.reduce((acc, value) => acc + value, 0) / datasetIncomes.length
+    : monthlyIncome;
+  const avgSpend = datasetSpends.length
+    ? datasetSpends.reduce((acc, value) => acc + value, 0) / datasetSpends.length
+    : monthlySpend;
+  const spendingMedian = datasetSpends.length ? median(datasetSpends) : monthlySpend;
+
+  const safePctDelta = (value: number, baseline: number): number => {
+    if (!baseline) return 0;
+    return ((value - baseline) / baseline) * 100;
+  };
+
+  const incomeDelta = safePctDelta(monthlyIncome, avgIncome);
+  const spendingDelta = safePctDelta(monthlySpend, avgSpend);
+
+  const metrics: Metric[][] = [
+    [
+      {
+        label: 'Monthly Income',
+        value: formatMoney(monthlyIncome),
+        delta: `${incomeDelta >= 0 ? '+' : ''}${Math.round(incomeDelta)}%`,
+        deltaPositive: incomeDelta >= 0,
+      },
+      {
+        label: 'Monthly Spending',
+        value: formatMoney(monthlySpend),
+        delta: `${spendingDelta >= 0 ? '+' : ''}${Math.round(spendingDelta)}%`,
+        deltaPositive: spendingDelta < 30,
+        subLabel: monthlySpend > monthlyIncome ? 'Anomaly Detected' : undefined,
+        subLabelColor: '#ef4444',
+      },
+      {
+        label: 'Net Cash Flow',
+        value: formatMoney(netCashFlow),
+        delta: `${netCashFlow >= 0 ? '+' : ''}${Math.round(safePctDelta(netCashFlow, avgIncome || 1))}%`,
+        deltaPositive: netCashFlow >= 0,
+      },
+    ],
+    [
+      {
+        label: 'Avg Income (50 Mock)',
+        value: formatMoney(avgIncome),
+        delta: 'Dataset baseline',
+        deltaPositive: null,
+      },
+      {
+        label: 'Avg Spending (50 Mock)',
+        value: formatMoney(avgSpend),
+        delta: monthlySpend > avgSpend ? 'Above average' : 'Within average',
+        deltaPositive: monthlySpend <= avgSpend,
+        subLabelColor: '#ef4444',
+      },
+      {
+        label: 'Spending Median',
+        value: formatMoney(spendingMedian),
+        delta: `${datasetSpends.length} records`,
+        deltaPositive: null,
+      },
+    ],
+  ];
+
   return (
     <div style={{
       background: 'var(--card-bg)',

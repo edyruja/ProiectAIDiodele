@@ -16,6 +16,19 @@ import { Play, Pause, History, Calendar as CalendarIcon, RefreshCw } from 'lucid
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Calendar } from '@/components/ui/calendar';
 import TopBar from '../TopBar';
+import {
+  readSelectedCompanyState,
+  subscribeSelectedCompanyChanges,
+} from '../lib/selectedCompany';
+
+interface CompanyRecord {
+  id: number;
+  company_name: string;
+  average_monthly_spend?: number;
+  risk_label?: string;
+}
+
+const API_BASE = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000';
 
 // --- Mock Data Structure ---
 const START_TIME = 1710460800; // 2024-03-15 00:00:00 UTC
@@ -95,9 +108,16 @@ const mockEdges: TransactionEdge[] = [
 const sortedEdges = [...mockEdges].sort((a, b) => a.timestamp - b.timestamp);
 
 const TemporalGraphView: React.FC = () => {
+  const [companies, setCompanies] = useState<CompanyRecord[]>([]);
   const [currentTimestamp, setCurrentTimestamp] = useState<number>(sortedEdges[0].timestamp);
   const [isPlaying, setIsPlaying] = useState<boolean>(false);
   const [isCalendarOpen, setIsCalendarOpen] = useState<boolean>(false);
+  const [selectedCompanyId, setSelectedCompanyId] = useState<number | null>(
+    () => readSelectedCompanyState().id,
+  );
+  const [selectedCompanyName, setSelectedCompanyName] = useState<string>(
+    () => readSelectedCompanyState().name || '',
+  );
 
   // Dynamic timeline bounds based on the current month
   const [timelineBounds, setTimelineBounds] = useState({
@@ -107,18 +127,116 @@ const TemporalGraphView: React.FC = () => {
 
   // Derived variable: Shift mock data timestamps into the currently selected investigation month
   // and then filter by currentTimestamp
+  const prioritizedCompanies = useMemo(() => {
+    if (companies.length === 0) {
+      return companies;
+    }
+    const persistedById =
+      selectedCompanyId == null
+        ? undefined
+        : companies.find((company) => company.id === selectedCompanyId);
+    const normalizedName = selectedCompanyName.trim().toLowerCase();
+    const persistedByName =
+      !normalizedName
+        ? undefined
+        : companies.find((company) => company.company_name.toLowerCase() === normalizedName) ||
+          companies.find((company) => company.company_name.toLowerCase().includes(normalizedName));
+    const persisted = persistedById || persistedByName;
+    if (!persisted) {
+      return [] as CompanyRecord[];
+    }
+    return [persisted, ...companies.filter((company) => company.id !== persisted.id)];
+  }, [companies, selectedCompanyId, selectedCompanyName]);
+
+  useEffect(() => {
+    const unsubscribe = subscribeSelectedCompanyChanges((selection) => {
+      setSelectedCompanyId(selection.id);
+      setSelectedCompanyName(selection.name || '');
+    });
+
+    const initialSelection = readSelectedCompanyState();
+    setSelectedCompanyId(initialSelection.id);
+    setSelectedCompanyName(initialSelection.name || '');
+
+    return unsubscribe;
+  }, []);
+
+  const graphNodes = useMemo(() => {
+    if (prioritizedCompanies.length < 3) {
+      return mockNodes;
+    }
+    return prioritizedCompanies.slice(0, 3).map((company, index) => ({
+      id: `C${company.id}`,
+      data: { label: company.company_name },
+      position: { x: 140 + index * 300, y: index % 2 === 0 ? 120 : 320 },
+      style: {
+        background: 'rgba(255, 255, 255, 0.05)',
+        border: '1px solid var(--sidebar-border)',
+        borderRadius: '12px',
+        padding: '10px',
+        color: 'var(--text-primary)',
+        backdropFilter: 'blur(10px)',
+      },
+    })) as Node[];
+  }, [prioritizedCompanies]);
+
+  const graphEdges = useMemo(() => {
+    if (prioritizedCompanies.length < 3) {
+      return mockEdges;
+    }
+    const base = START_TIME;
+    const chosen = prioritizedCompanies.slice(0, 3);
+    const makeAmount = (company: CompanyRecord) => {
+      const value = Math.round((company.average_monthly_spend || 10000) * 0.35);
+      return `$${value.toLocaleString('en-US')}`;
+    };
+    return [
+      {
+        id: 'e-db-1',
+        source: `C${chosen[0].id}`,
+        target: `C${chosen[1].id}`,
+        label: makeAmount(chosen[0]),
+        timestamp: base,
+        dateString: '2024-03-15 09:00',
+        markerEnd: { type: MarkerType.ArrowClosed, color: 'var(--apple-blue)' },
+        style: { stroke: 'var(--apple-blue)', strokeWidth: 2 },
+      },
+      {
+        id: 'e-db-2',
+        source: `C${chosen[1].id}`,
+        target: `C${chosen[2].id}`,
+        label: makeAmount(chosen[1]),
+        timestamp: base + DAY,
+        dateString: '2024-03-16 10:00',
+        markerEnd: { type: MarkerType.ArrowClosed, color: 'var(--apple-blue)' },
+        style: { stroke: 'var(--apple-blue)', strokeWidth: 2 },
+      },
+      {
+        id: 'e-db-3',
+        source: `C${chosen[2].id}`,
+        target: `C${chosen[0].id}`,
+        label: makeAmount(chosen[2]),
+        timestamp: base + 2 * DAY,
+        dateString: '2024-03-17 12:00',
+        markerEnd: { type: MarkerType.ArrowClosed, color: 'var(--risk-high)' },
+        animated: true,
+        style: { stroke: 'var(--risk-high)', strokeWidth: 2.5 },
+      },
+    ] as TransactionEdge[];
+  }, [prioritizedCompanies]);
+
   const visibleEdges = useMemo(() => {
     // Get the start of the currently selected month to use as a base
     const currentMonthStart = timelineBounds.min;
     const shift = currentMonthStart - 1709251200; // Shift relative to start of March 2024
     
-    return mockEdges
+    return graphEdges
       .map(edge => ({
         ...edge,
         timestamp: edge.timestamp + shift
       }))
       .filter(edge => edge.timestamp <= currentTimestamp);
-  }, [currentTimestamp, timelineBounds.min]);
+  }, [currentTimestamp, timelineBounds.min, graphEdges]);
 
   // Derived variable: only return nodes that are involved in at least one visible edge
   const visibleNodes = useMemo(() => {
@@ -127,8 +245,23 @@ const TemporalGraphView: React.FC = () => {
       activeNodeIds.add(edge.source);
       activeNodeIds.add(edge.target);
     });
-    return mockNodes.filter(node => activeNodeIds.has(node.id));
-  }, [visibleEdges]);
+    return graphNodes.filter(node => activeNodeIds.has(node.id));
+  }, [visibleEdges, graphNodes]);
+
+  useEffect(() => {
+    fetch(`${API_BASE}/mock-companies?limit=10`)
+      .then(async (response) => {
+        if (!response.ok) {
+          throw new Error('failed');
+        }
+        const payload = await response.json();
+        const items = Array.isArray(payload?.items) ? payload.items : [];
+        setCompanies(items);
+      })
+      .catch(() => {
+        setCompanies([]);
+      });
+  }, []);
 
   // Format current date for display
   const currentDateDisplay = useMemo(() => {
@@ -176,7 +309,10 @@ const TemporalGraphView: React.FC = () => {
 
   return (
     <div className="flex flex-col h-screen w-full bg-[var(--main-bg)]">
-      <TopBar entityName="Investigation Canvas" riskLevel="HIGH">
+      <TopBar
+        entityName={prioritizedCompanies[0]?.company_name || selectedCompanyName || 'Investigation Canvas'}
+        riskLevel={prioritizedCompanies[0]?.risk_label || 'HIGH'}
+      >
         <div className="ml-auto flex items-center gap-4 text-sm text-[var(--text-secondary)] font-medium">
           Temporal Analysis Mode
         </div>

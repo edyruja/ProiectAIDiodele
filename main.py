@@ -1,10 +1,12 @@
-from fastapi import FastAPI, HTTPException
+from fastapi import Depends, FastAPI, HTTPException, Query
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from celery.result import AsyncResult
-from fastapi.responses import JSONResponse
+from sqlalchemy.orm import Session
 
 from agent_core import Orchestrator
+from database import get_db
+from models import CompanyProfile
 from worker import celery_app, run_osint_analysis
 
 app = FastAPI(title="AML Antigravity API", version="0.1.0")
@@ -21,6 +23,25 @@ app.add_middleware(
 @app.get("/health")
 def health_check():
     return {"status": "ok"}
+
+
+@app.get("/mock-companies")
+def list_mock_companies(
+    limit: int = Query(default=50, ge=1, le=200),
+    query: str | None = Query(default=None),
+    db: Session = Depends(get_db),
+):
+    """Return mock company records from the database for frontend dashboards."""
+    statement = db.query(CompanyProfile)
+    if query and query.strip():
+        term = f"%{query.strip()}%"
+        statement = statement.filter(CompanyProfile.company_name.ilike(term))
+
+    companies = statement.order_by(CompanyProfile.id.asc()).limit(limit).all()
+    return {
+        "count": len(companies),
+        "items": [company.to_dict() for company in companies],
+    }
 
 
 # ---------------------------------------------------------------------------

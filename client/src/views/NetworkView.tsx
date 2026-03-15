@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import {
   ReactFlow,
   ReactFlowProvider,
@@ -11,57 +11,209 @@ import {
 } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
 import TopBar from '../TopBar';
+import {
+  readSelectedCompanyState,
+  subscribeSelectedCompanyChanges,
+  writeSelectedCompanyState,
+} from '../lib/selectedCompany';
 
 // Fullscreen interactive network view for Deep OSINT Investigations
+const API_BASE = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000';
+
+interface CompanyRecord {
+  id: number;
+  company_name: string;
+  country?: string;
+  risk_label?: string;
+  risk_explanation?: string;
+  directors?: string[];
+  average_monthly_spend?: number;
+}
+
 const NetworkView: React.FC = () => {
+  const [companies, setCompanies] = useState<CompanyRecord[]>([]);
+  const [selectedCompanyId, setSelectedCompanyId] = useState<number | null>(null);
   const [selectedNode, setSelectedNode] = useState<Node | null>(null);
+  const [selectedCompanyName, setSelectedCompanyName] = useState<string>(() => readSelectedCompanyState().name || '');
 
-  const initialNodes: Node[] = [
-    {
-      id: 'target',
-      type: 'input',
-      data: { label: 'NEXUS TRADING CORP', details: 'Target Entity. Registered in Delaware.' },
-      position: { x: 400, y: 300 },
-      style: { background: 'var(--risk-high)', color: '#fff', fontWeight: 'bold', borderRadius: '12px', padding: '12px', border: 'none', boxShadow: '0 8px 24px rgba(255, 59, 48, 0.3)' },
-    },
-    {
-      id: 'dir-1',
-      data: { label: 'John Doe (Director)', details: 'CEO since 2019.' },
-      position: { x: 200, y: 150 },
-      style: { background: 'rgba(255, 255, 255, 0.05)', border: '1px solid var(--sidebar-border)', borderRadius: '12px', padding: '10px', color: 'var(--text-primary)', backdropFilter: 'blur(10px)' },
-    },
-    {
-      id: 'dir-2',
-      data: { label: 'Jane Smith (Director)', details: 'CFO since 2021. Links to offshore accounts.' },
-      position: { x: 600, y: 150 },
-      style: { background: 'var(--risk-medium-bg)', border: '1px solid var(--risk-medium-border)', borderRadius: '12px', padding: '10px', color: 'var(--risk-medium)', backdropFilter: 'blur(10px)' },
-    },
-    {
-      id: 'shell-1',
-      data: { label: 'Global Ventures LLC', details: 'Shell company located in Cayman Islands.' },
-      position: { x: 800, y: 50 },
-      style: { background: 'var(--risk-high-bg)', border: '1px solid var(--risk-high-border)', borderRadius: '12px', padding: '10px', color: 'var(--risk-high)', backdropFilter: 'blur(10px)' },
-    },
-    {
-      id: 'bank-1',
-      type: 'output',
-      data: { label: 'Swiss Bank Account', details: 'Large volume of recent suspicious wire transfers.' },
-      position: { x: 400, y: 500 },
-      style: { background: 'var(--risk-low-bg)', border: '1px solid var(--risk-low-border)', borderRadius: '12px', padding: '10px', color: 'var(--risk-low)', backdropFilter: 'blur(10px)' },
-    },
-  ];
+  useEffect(() => {
+    fetch(`${API_BASE}/mock-companies?limit=50`)
+      .then(async (response) => {
+        if (!response.ok) {
+          throw new Error('Unable to fetch companies');
+        }
+        const payload = await response.json();
+        const items = Array.isArray(payload?.items) ? payload.items : [];
+        setCompanies(items);
+      })
+      .catch(() => {
+        setCompanies([]);
+      });
+  }, []);
 
-  const initialEdges: Edge[] = [
-    { id: 'e1', source: 'dir-1', target: 'target', label: 'controls', markerEnd: { type: MarkerType.ArrowClosed, color: 'var(--text-secondary)' }, style: { stroke: 'var(--text-secondary)', strokeWidth: 1.5 } },
-    { id: 'e2', source: 'dir-2', target: 'target', label: 'controls', markerEnd: { type: MarkerType.ArrowClosed, color: 'var(--text-secondary)' }, style: { stroke: 'var(--text-secondary)', strokeWidth: 1.5 } },
-    { id: 'e3', source: 'target', target: 'bank-1', label: 'transfers funds to', markerEnd: { type: MarkerType.ArrowClosed, color: 'var(--risk-high)' }, animated: true, style: { stroke: 'var(--risk-high)', strokeWidth: 2 } },
-    { id: 'e4', source: 'dir-2', target: 'shell-1', label: 'owner of', markerEnd: { type: MarkerType.ArrowClosed, color: 'var(--risk-medium)' }, style: { stroke: 'var(--risk-medium)', strokeWidth: 1.5 } },
-  ];
+  useEffect(() => {
+    const unsubscribe = subscribeSelectedCompanyChanges((selection) => {
+      setSelectedCompanyId(selection.id);
+      setSelectedCompanyName(selection.name || '');
+    });
 
-  const [nodes] = useState<Node[]>(initialNodes);
-  const [edges] = useState<Edge[]>(initialEdges);
+    const initialSelection = readSelectedCompanyState();
+    setSelectedCompanyId(initialSelection.id);
+    setSelectedCompanyName(initialSelection.name || '');
+
+    return unsubscribe;
+  }, []);
+
+  useEffect(() => {
+    if (companies.length === 0) {
+      return;
+    }
+
+    const byId =
+      selectedCompanyId == null
+        ? null
+        : companies.find((company) => company.id === selectedCompanyId) || null;
+
+    const normalizedName = selectedCompanyName.trim().toLowerCase();
+    const byName =
+      !normalizedName
+        ? null
+        : companies.find((company) => company.company_name.toLowerCase() === normalizedName) ||
+          companies.find((company) => company.company_name.toLowerCase().includes(normalizedName)) ||
+          null;
+
+    const resolved = byId || byName;
+    if (resolved && resolved.id !== selectedCompanyId) {
+      setSelectedCompanyId(resolved.id);
+    }
+  }, [companies, selectedCompanyId, selectedCompanyName]);
+
+  const selectedCompany =
+    companies.find((company) => company.id === selectedCompanyId) || null;
+
+  const peers = useMemo(() => {
+    if (!selectedCompany) {
+      return [] as CompanyRecord[];
+    }
+    return companies
+      .filter((company) => company.id !== selectedCompany.id)
+      .filter((company) => {
+        if (selectedCompany.country && company.country === selectedCompany.country) {
+          return true;
+        }
+        return company.risk_label === selectedCompany.risk_label;
+      })
+      .slice(0, 4);
+  }, [companies, selectedCompany]);
+
+  const nodes = useMemo(() => {
+    if (!selectedCompany) {
+      return [] as Node[];
+    }
+
+    const mappedNodes: Node[] = [
+      {
+        id: 'target',
+        type: 'input',
+        data: {
+          label: selectedCompany.company_name,
+          details: selectedCompany.risk_explanation || 'Primary investigated entity.',
+        },
+        position: { x: 420, y: 260 },
+        style: {
+          background: 'var(--risk-high)',
+          color: '#fff',
+          fontWeight: 'bold',
+          borderRadius: '12px',
+          padding: '12px',
+          border: 'none',
+          boxShadow: '0 8px 24px rgba(255, 59, 48, 0.3)',
+        },
+      },
+    ];
+
+    (selectedCompany.directors || []).slice(0, 4).forEach((director, index) => {
+      mappedNodes.push({
+        id: `dir-${index}`,
+        data: { label: `${director} (Director)`, details: 'Director relationship from DB mock record.' },
+        position: { x: 140 + index * 190, y: 90 },
+        style: {
+          background: 'rgba(255, 255, 255, 0.05)',
+          border: '1px solid var(--sidebar-border)',
+          borderRadius: '12px',
+          padding: '10px',
+          color: 'var(--text-primary)',
+          backdropFilter: 'blur(10px)',
+        },
+      });
+    });
+
+    peers.forEach((peer, index) => {
+      mappedNodes.push({
+        id: `peer-${peer.id}`,
+        data: {
+          label: peer.company_name,
+          details: `${peer.country || 'Unknown'} | ${peer.risk_label || 'UNKNOWN'}`,
+          companyId: peer.id,
+        },
+        position: { x: 140 + index * 190, y: 470 },
+        style: {
+          background: 'var(--risk-medium-bg)',
+          border: '1px solid var(--risk-medium-border)',
+          borderRadius: '12px',
+          padding: '10px',
+          color: 'var(--risk-medium)',
+          backdropFilter: 'blur(10px)',
+          cursor: 'pointer',
+        },
+      });
+    });
+
+    return mappedNodes;
+  }, [selectedCompany, peers]);
+
+  const edges = useMemo(() => {
+    if (!selectedCompany) {
+      return [] as Edge[];
+    }
+    const mappedEdges: Edge[] = [];
+
+    (selectedCompany.directors || []).slice(0, 4).forEach((_, index) => {
+      mappedEdges.push({
+        id: `e-dir-${index}`,
+        source: `dir-${index}`,
+        target: 'target',
+        label: 'controls',
+        markerEnd: { type: MarkerType.ArrowClosed, color: 'var(--text-secondary)' },
+        style: { stroke: 'var(--text-secondary)', strokeWidth: 1.5 },
+      });
+    });
+
+    peers.forEach((peer) => {
+      mappedEdges.push({
+        id: `e-peer-${peer.id}`,
+        source: 'target',
+        target: `peer-${peer.id}`,
+        label: peer.country && selectedCompany.country === peer.country ? 'country peer' : 'risk peer',
+        markerEnd: { type: MarkerType.ArrowClosed, color: 'var(--risk-medium)' },
+        animated: true,
+        style: { stroke: 'var(--risk-medium)', strokeWidth: 1.8 },
+      });
+    });
+
+    return mappedEdges;
+  }, [selectedCompany, peers]);
 
   const onNodeClick = (_: React.MouseEvent, node: Node) => {
+    const companyId = (node.data as { companyId?: number })?.companyId;
+    if (companyId) {
+      setSelectedCompanyId(companyId);
+      const nextCompany = companies.find((company) => company.id === companyId);
+      writeSelectedCompanyState({
+        id: companyId,
+        name: nextCompany?.company_name || selectedCompanyName,
+      });
+    }
     setSelectedNode(node);
   };
 
@@ -71,7 +223,7 @@ const NetworkView: React.FC = () => {
 
   return (
     <div className="flex flex-col h-screen w-full bg-[var(--main-bg)]">
-      <TopBar entityName="NEXUS TRADING CORP" riskLevel="HIGH">
+      <TopBar entityName={selectedCompany?.company_name || selectedCompanyName || 'NETWORK VIEW'} riskLevel={selectedCompany?.risk_label || 'MEDIUM'}>
         <div className="ml-auto flex items-center gap-4 text-sm text-[var(--text-secondary)] font-medium">
           Interactive Canvas Mode
         </div>

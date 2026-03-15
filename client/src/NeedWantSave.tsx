@@ -42,7 +42,20 @@ const DonutChart: React.FC<DonutProps> = ({ percentage, color, label, sublabel }
   );
 };
 
-const NeedWantSave: React.FC = () => {
+interface NeedWantSaveProps {
+  budgetBreakdown?: {
+    need?: number;
+    want?: number;
+    save?: number;
+  };
+}
+
+const NeedWantSave: React.FC<NeedWantSaveProps> = ({ budgetBreakdown }) => {
+  const need = budgetBreakdown?.need ?? 15;
+  const want = budgetBreakdown?.want ?? 80;
+  const save = budgetBreakdown?.save ?? Math.max(0, 100 - need - want);
+  const riskBand = want >= 45 ? 'Critical' : want >= 30 ? 'Medium' : 'Low';
+
   return (
     <div style={{
       background: 'var(--card-bg)',
@@ -58,9 +71,9 @@ const NeedWantSave: React.FC = () => {
 
       {/* Donut Charts Row */}
       <div style={{ display: 'flex', alignItems: 'flex-end', gap: '16px', marginBottom: '24px' }}>
-        <DonutChart percentage={15} color="var(--apple-blue)" label="ESSENTIAL" sublabel="Standard Need" />
-        <DonutChart percentage={80} color="var(--risk-high)" label="ANOMALOUS" sublabel="High-Risk Want" />
-        <DonutChart percentage={5} color="var(--risk-low)" label="RESERVE" sublabel="Savings" />
+        <DonutChart percentage={need} color="var(--apple-blue)" label="ESSENTIAL" sublabel="Standard Need" />
+        <DonutChart percentage={want} color="var(--risk-high)" label="ANOMALOUS" sublabel="High-Risk Want" />
+        <DonutChart percentage={save} color="var(--risk-low)" label="RESERVE" sublabel="Savings" />
       </div>
 
       {/* Warning Label */}
@@ -74,7 +87,9 @@ const NeedWantSave: React.FC = () => {
         lineHeight: 1.5,
         fontWeight: 500,
       }}>
-        Critical Analysis: High <strong style={{ fontWeight: 800 }}>&ldquo;Anomalous&rdquo;</strong> distribution indicates significant integration of offshore or luxury asset movements.
+        {riskBand} Analysis: <strong style={{ fontWeight: 800 }}>{want}%</strong> of budget is in
+        <strong style={{ fontWeight: 800 }}> &ldquo;Anomalous&rdquo; </strong>
+        spend, while savings remain <strong style={{ fontWeight: 800 }}>{save}%</strong>.
       </div>
     </div>
   );

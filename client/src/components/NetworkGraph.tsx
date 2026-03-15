@@ -14,9 +14,23 @@ interface NetworkGraphProps {
   companyName: string;
   directors?: string[];
   address?: string;
+  relatedCompanies?: Array<{
+    id: number;
+    name: string;
+    relation: string;
+    riskLabel?: string;
+    country?: string;
+  }>;
+  onRelatedCompanySelect?: (companyId: number) => void;
 }
 
-const NetworkGraph: React.FC<NetworkGraphProps> = ({ companyName, directors = [], address }) => {
+const NetworkGraph: React.FC<NetworkGraphProps> = ({
+  companyName,
+  directors = [],
+  address,
+  relatedCompanies = [],
+  onRelatedCompanySelect,
+}) => {
   const nodes = useMemo(() => {
     const initialNodes: Node[] = [
       {
@@ -49,8 +63,29 @@ const NetworkGraph: React.FC<NetworkGraphProps> = ({ companyName, directors = []
       });
     }
 
+    relatedCompanies.forEach((company, index) => {
+      initialNodes.push({
+        id: `peer-${index}`,
+        data: {
+          label: `${company.name}${company.riskLabel ? ` (${company.riskLabel})` : ''}`,
+          relatedCompanyId: company.id,
+          subtitle: company.country || 'Unknown',
+        },
+        position: { x: 40 + index * 180, y: 300 },
+        style: {
+          background: '#eef2ff',
+          border: '1px solid #a5b4fc',
+          color: '#312e81',
+          borderRadius: '8px',
+          padding: '8px',
+          fontSize: '12px',
+          cursor: 'pointer',
+        },
+      });
+    });
+
     return initialNodes;
-  }, [companyName, directors, address]);
+  }, [companyName, directors, address, relatedCompanies]);
 
   const edges = useMemo(() => {
     const initialEdges: Edge[] = [];
@@ -75,8 +110,18 @@ const NetworkGraph: React.FC<NetworkGraphProps> = ({ companyName, directors = []
       });
     }
 
+    relatedCompanies.forEach((company, index) => {
+      initialEdges.push({
+        id: `e-main-peer-${index}`,
+        source: 'main-company',
+        target: `peer-${index}`,
+        label: company.relation,
+        markerEnd: { type: MarkerType.ArrowClosed },
+      });
+    });
+
     return initialEdges;
-  }, [directors, address]);
+  }, [directors, address, relatedCompanies]);
 
   return (
     <ReactFlowProvider>
@@ -84,6 +129,12 @@ const NetworkGraph: React.FC<NetworkGraphProps> = ({ companyName, directors = []
         <ReactFlow
           nodes={nodes}
           edges={edges}
+          onNodeClick={(_, node) => {
+            const relatedCompanyId = (node.data as { relatedCompanyId?: number })?.relatedCompanyId;
+            if (relatedCompanyId && onRelatedCompanySelect) {
+              onRelatedCompanySelect(relatedCompanyId);
+            }
+          }}
           fitView
         >
           <Background color="#aaa" gap={16} />

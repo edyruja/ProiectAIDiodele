@@ -13,9 +13,6 @@ const paymentChannels: PaymentChannel[] = [
   { name: 'Wire Transfer (EU)', pct: 13, color: '#34c759' },
 ];
 
-// SVG line chart data points (normalized 0-100 viewbox height, inverted)
-const incomePoints = [60, 58, 55, 57, 56, 58];
-const spendingPoints = [55, 60, 72, 85, 92, 98];
 const months = ['Oct', 'Nov', 'Dec', 'Jan', 'Feb', 'Mar'];
 
 const toSvgPath = (points: number[], width: number, height: number): string => {
@@ -25,15 +22,76 @@ const toSvgPath = (points: number[], width: number, height: number): string => {
     .join(' ');
 };
 
-const TransactionAnalytics: React.FC = () => {
+interface TransactionAnalyticsProps {
+  companyData?: {
+    revenue?: number;
+    average_monthly_spend?: number;
+    expense_categories?: Record<string, number>;
+  } | null;
+  companies?: Array<{
+    revenue?: number;
+    average_monthly_spend?: number;
+  }>;
+}
+
+const TransactionAnalytics: React.FC<TransactionAnalyticsProps> = ({ companyData, companies = [] }) => {
   const W = 300;
   const H = 110;
-  const incomePath = toSvgPath(incomePoints, W, H);
-  const spendingPath = toSvgPath(spendingPoints, W, H);
+  const baseIncome = (companyData?.revenue || 0) / 12;
+  const baseSpend = companyData?.average_monthly_spend || 0;
+  const fallbackIncomes = companies.map((company) => (company.revenue || 0) / 12).filter((value) => value > 0);
+  const fallbackSpends = companies.map((company) => company.average_monthly_spend || 0).filter((value) => value > 0);
+
+  const baselineIncome = baseIncome || (fallbackIncomes[0] || 12000);
+  const baselineSpend = baseSpend || (fallbackSpends[0] || 9000);
+
+  const companySeed = (companyData?.expense_categories ? Object.keys(companyData.expense_categories).join('') : 'seed')
+    .split('')
+    .reduce((acc, char) => acc + char.charCodeAt(0), 0);
+  const volatility = ((companySeed % 9) + 3) / 100;
+  const riskPressure = Math.min(0.25, (baselineSpend / Math.max(baselineIncome, 1)) * 0.12);
+
+  const monthMultipliers = [0.82, 0.89, 0.93, 1, 1.06, 1.1];
+
+  const generatedIncomePoints = monthMultipliers.map((factor, index) => {
+    const wobble = 1 + (index % 2 === 0 ? volatility : -volatility * 0.6);
+    return baselineIncome * factor * wobble;
+  });
+  const generatedSpendingPoints = monthMultipliers.map((factor, index) => {
+    const stressCurve = 1 + riskPressure + index * 0.01;
+    const wobble = 1 + (index % 2 === 0 ? -volatility * 0.4 : volatility * 0.7);
+    return baselineSpend * factor * stressCurve * wobble;
+  });
+
+  const allPoints = [...generatedIncomePoints, ...generatedSpendingPoints];
+  const minPoint = Math.min(...allPoints);
+  const maxPoint = Math.max(...allPoints);
+  const scaleToPercent = (value: number) => {
+    if (maxPoint === minPoint) {
+      return 50;
+    }
+    return ((value - minPoint) / (maxPoint - minPoint)) * 90 + 5;
+  };
+
+  const incomeSeries = generatedIncomePoints.map(scaleToPercent);
+  const spendingSeries = generatedSpendingPoints.map(scaleToPercent);
+  const incomePath = toSvgPath(incomeSeries, W, H);
+  const spendingPath = toSvgPath(spendingSeries, W, H);
 
   // Area fill path
   const incomeArea = `${incomePath} L ${W} ${H} L 0 ${H} Z`;
   const spendingArea = `${spendingPath} L ${W} ${H} L 0 ${H} Z`;
+
+  const channels = companyData?.expense_categories
+    ? Object.entries(companyData.expense_categories)
+        .sort((a, b) => b[1] - a[1])
+        .slice(0, 4)
+        .map(([name, pct], index) => ({
+          name,
+          pct,
+          color: ['#007aff', '#ff3b30', '#ff9500', '#34c759'][index % 4],
+        }))
+    : paymentChannels;
 
   return (
     <div style={{
@@ -95,7 +153,7 @@ const TransactionAnalytics: React.FC = () => {
           Payment Channel Analysis
         </div>
         <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
-          {paymentChannels.map(ch => (
+          {channels.map(ch => (
             <div key={ch.name} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '12px' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flex: 1 }}>
                 <div style={{

@@ -1,6 +1,10 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import TopBar from '../TopBar';
 import { Search, Filter, Download } from 'lucide-react';
+import {
+  readSelectedCompanyState,
+  subscribeSelectedCompanyChanges,
+} from '../lib/selectedCompany';
 
 interface OsintRecord {
   id: string;
@@ -11,6 +15,16 @@ interface OsintRecord {
   findings: string;
 }
 
+interface CompanyRecord {
+  id: number;
+  company_name: string;
+  risk_label?: string;
+  risk_explanation?: string;
+  created_at?: string;
+}
+
+const API_BASE = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000';
+
 const mockData: OsintRecord[] = [
   { id: 'OS-8091', entity: 'NEXUS TRADING CORP', source: 'Offshore Leaks Database', timestamp: '2026-03-14T10:23:00Z', confidence: 'HIGH', findings: 'Linked to 3 Cayman Island shell companies.' },
   { id: 'OS-8092', entity: 'Jane Smith', source: 'Global Watchlist', timestamp: '2026-03-14T09:12:00Z', confidence: 'HIGH', findings: 'Flagged PEP (Politically Exposed Person).' },
@@ -20,19 +34,81 @@ const mockData: OsintRecord[] = [
 ];
 
 const OsintView: React.FC = () => {
-  const [search, setSearch] = useState('');
+  const [searchQuery, setSearchQuery] = useState(() => readSelectedCompanyState().name || '');
+  const [records, setRecords] = useState<OsintRecord[]>(mockData);
+  const [filteredRecords, setFilteredRecords] = useState<OsintRecord[]>(mockData);
+  const [selectedCompanyName, setSelectedCompanyName] = useState(() => readSelectedCompanyState().name || '');
 
-  const filteredData = mockData.filter(record => 
-    record.entity.toLowerCase().includes(search.toLowerCase()) || 
-    record.findings.toLowerCase().includes(search.toLowerCase())
-  );
+  useEffect(() => {
+    const unsubscribe = subscribeSelectedCompanyChanges((selection) => {
+      const nextName = selection.name || '';
+      setSelectedCompanyName(nextName);
+      setSearchQuery(nextName);
+    });
+
+    return unsubscribe;
+  }, []);
+
+  useEffect(() => {
+    fetch(`${API_BASE}/mock-companies?limit=50`)
+      .then(async (response) => {
+        if (!response.ok) {
+          throw new Error('failed');
+        }
+        const payload = await response.json();
+        const companies = Array.isArray(payload?.items) ? (payload.items as CompanyRecord[]) : [];
+        if (companies.length === 0) {
+          return;
+        }
+
+        const mapped: OsintRecord[] = companies.map((company) => {
+          const confidence = company.risk_label === 'HIGH'
+            ? 'HIGH'
+            : company.risk_label === 'MEDIUM'
+              ? 'MEDIUM'
+              : 'LOW';
+          return {
+            id: `OS-${company.id.toString().padStart(4, '0')}`,
+            entity: company.company_name,
+            source: 'Mock DB Intelligence Feed',
+            timestamp: company.created_at || new Date().toISOString(),
+            confidence,
+            findings: company.risk_explanation || 'No major adverse findings were recorded.',
+          };
+        });
+
+        setRecords(mapped);
+        setFilteredRecords(mapped);
+      })
+      .catch(() => {
+        // Keep static fallback for offline/test mode.
+      });
+  }, []);
+
+  useEffect(() => {
+    const normalizedQuery = searchQuery.trim().toLowerCase();
+
+    if (!normalizedQuery) {
+      setFilteredRecords(records);
+      return;
+    }
+
+    const filtered = records.filter((record) => {
+      return (
+        record.entity.toLowerCase().includes(normalizedQuery) ||
+        record.findings.toLowerCase().includes(normalizedQuery)
+      );
+    });
+
+    setFilteredRecords(filtered);
+  }, [searchQuery, records]);
 
   const handleExportCSV = () => {
     // CSV Header
     const headers = ['Record ID', 'Target Entity', 'Source Engine', 'Timestamp', 'Confidence', 'Extracted Intelligence'];
     
     // CSV Rows
-    const rows = filteredData.map(record => [
+    const rows = filteredRecords.map(record => [
       record.id,
       record.entity,
       record.source,
@@ -60,7 +136,7 @@ const OsintView: React.FC = () => {
 
   return (
     <div className="flex flex-col h-screen w-full bg-[var(--main-bg)]">
-      <TopBar entityName="GLOBAL INTELLIGENCE HUB" riskLevel="MEDIUM">
+      <TopBar entityName={selectedCompanyName || 'GLOBAL INTELLIGENCE HUB'} riskLevel="MEDIUM">
         <div className="ml-auto flex items-center gap-4 text-sm text-[var(--text-secondary)] font-medium">
           OSINT Data Bridge
         </div>
@@ -93,8 +169,10 @@ const OsintView: React.FC = () => {
             <input 
               type="text" 
               placeholder="Search intelligence records by entity name or finding..." 
-              value={search}
-              onChange={e => setSearch(e.target.value)}
+              aria-label="Search intelligence records"
+              data-testid="osint-search-input"
+              value={searchQuery}
+              onChange={e => setSearchQuery(e.target.value)}
               className="w-full pl-14 pr-6 py-4 bg-white/5 border border-[var(--sidebar-border)] rounded-2xl text-[14px] text-[var(--text-primary)] focus:outline-none focus:ring-2 focus:ring-[var(--apple-blue)] focus:border-transparent transition-all shadow-xl placeholder:text-[var(--text-secondary)] placeholder:opacity-40"
             />
           </div>
@@ -112,7 +190,7 @@ const OsintView: React.FC = () => {
                 </tr>
               </thead>
               <tbody className="divide-y divide-white/[0.04]">
-                {filteredData.map(record => (
+                {filteredRecords.map(record => (
                   <tr key={record.id} className="hover:bg-white/[0.02] transition-colors group cursor-pointer">
                     <td className="px-8 py-5 text-[13px] font-mono text-[var(--text-secondary)] opacity-60 whitespace-nowrap">{record.id}</td>
                     <td className="px-8 py-5">
@@ -134,10 +212,10 @@ const OsintView: React.FC = () => {
                     </td>
                   </tr>
                 ))}
-                {filteredData.length === 0 && (
+                {filteredRecords.length === 0 && (
                   <tr>
                     <td colSpan={5} className="px-8 py-16 text-center text-[var(--text-secondary)] opacity-60 text-sm">
-                      No intelligence records found matching your search.
+                      Nicio cheltuiala gasita. No intelligence records found matching your search.
                     </td>
                   </tr>
                 )}

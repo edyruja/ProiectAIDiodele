@@ -28,7 +28,26 @@ const riskColors: Record<string, string> = {
   low: 'var(--risk-low)',
 };
 
-const SpendingInsights: React.FC = () => {
+interface SpendingInsightsProps {
+  expenseCategories?: Record<string, number>;
+}
+
+const SpendingInsights: React.FC<SpendingInsightsProps> = ({ expenseCategories }) => {
+  const categoriesToRender: Category[] = expenseCategories
+    ? Object.entries(expenseCategories)
+        .map(([name, pct]) => {
+          const riskLevel: 'high' | 'medium' | 'low' =
+            pct >= 20 ? 'high' : pct >= 10 ? 'medium' : 'low';
+          return { name, pct, riskLevel };
+        })
+        .sort((a, b) => b.pct - a.pct)
+        .slice(0, 5)
+    : categories;
+
+  const highRiskPct = categoriesToRender
+    .filter((cat) => cat.riskLevel === 'high')
+    .reduce((acc, cat) => acc + cat.pct, 0);
+
   return (
     <div style={{
       background: 'var(--card-bg)',
@@ -47,7 +66,7 @@ const SpendingInsights: React.FC = () => {
       </div>
 
       <div style={{ display: 'flex', flexDirection: 'column', gap: '14px', marginBottom: '24px' }}>
-        {categories.map((cat) => (
+        {categoriesToRender.map((cat) => (
           <div key={cat.name}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
               <span style={{ fontSize: '13px', fontWeight: 500, color: 'var(--text-primary)' }}>{cat.name}</span>
@@ -80,7 +99,7 @@ const SpendingInsights: React.FC = () => {
       }}>
         <div style={{ color: 'var(--risk-high)', flexShrink: 0, marginTop: '1px' }}><AlertIcon /></div>
         <p style={{ margin: 0, fontSize: '12px', color: 'var(--risk-high)', lineHeight: 1.5, fontWeight: 500 }}>
-          High Concentration: <strong style={{ fontWeight: 800 }}>82%</strong> of spending is in high-risk categories, matching patterns of financial obfuscation.
+          High Concentration: <strong style={{ fontWeight: 800 }}>{highRiskPct}%</strong> of spending is in high-risk categories, matching patterns of financial obfuscation.
         </p>
       </div>
     </div>

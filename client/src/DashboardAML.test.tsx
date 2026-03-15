@@ -1,4 +1,4 @@
-import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import { render, screen, fireEvent } from '@testing-library/react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import DashboardAML from './DashboardAML';
 
@@ -11,8 +11,33 @@ vi.mock('./components/NetworkGraph', () => ({
 globalThis.fetch = vi.fn();
 
 describe('DashboardAML Component', () => {
+  const mockCompany = {
+    id: 101,
+    company_name: 'TEST COMPANY LLC',
+    risk_score: 85,
+    risk_label: 'HIGH',
+    risk_explanation: 'The company operates in a high-risk jurisdiction.',
+    country: 'RO',
+    registration_number: 'RO123456',
+    directors: ['Alice Johnson'],
+  };
+
   beforeEach(() => {
     vi.resetAllMocks();
+    vi.unstubAllEnvs();
+    (global.fetch as any).mockImplementation((input: RequestInfo | URL) => {
+      const url = String(input);
+      if (url.includes('query=')) {
+        return Promise.resolve({
+          ok: true,
+          json: async () => ({ count: 1, items: [mockCompany] }),
+        });
+      }
+      return Promise.resolve({
+        ok: true,
+        json: async () => ({ count: 1, items: [mockCompany] }),
+      });
+    });
   });
 
   it('Test 1: Verify that an input form exists containing a text field to enter a "company name" and a submit button', () => {
@@ -27,29 +52,7 @@ describe('DashboardAML Component', () => {
     expect(submitButton).toBeInTheDocument();
   });
 
-  it('Test 2: Simulate submitting the form with mock data and verify UI eventually displays AML Risk Score and Explanation', async () => {
-    vi.useFakeTimers(); // Enable fake timers for this test
-
-    const taskId = 'mock-task-123';
-    const mockStatusResponse = {
-      status: 'SUCCESS',
-      result: {
-        analysis: {
-          risk_score: '85',
-          risk_level: 'High Risk',
-          chain_of_thought: 'The company operates in a high-risk jurisdiction.'
-        },
-        company_data: {
-          name: 'TEST COMPANY LLC'
-        }
-      }
-    };
-
-    // First call: POST /analyze-company → returns task_id
-    // Second call: GET /analysis-status/:id → returns SUCCESS with analysis
-    (global.fetch as any)
-      .mockResolvedValueOnce({ ok: true, json: async () => ({ task_id: taskId }) })
-      .mockResolvedValueOnce({ ok: true, json: async () => mockStatusResponse });
+  it('Test 2: Simulate submitting the form with mock data and verify UI displays AML Risk Score and mock explanation', async () => {
 
     render(<DashboardAML />);
 
@@ -60,20 +63,39 @@ describe('DashboardAML Component', () => {
     fireEvent.change(inputField, { target: { value: 'Test Company LLC' } });
     fireEvent.click(submitButton);
 
-    // Verify the POST fetch was called
-    expect(global.fetch).toHaveBeenCalledTimes(1);
+    // Verify request was sent.
+    expect(global.fetch).toHaveBeenCalled();
 
-    // Advance timers to trigger the polling.
-    // Assuming the polling interval is 2000ms (2 seconds) based on typical implementation.
-    // We need to advance enough time for the polling to happen and the second fetch to resolve.
-    vi.advanceTimersByTime(2500); // Advance by 2.5 seconds, allowing for one poll cycle.
+    // Verify the UI displays the result sections used by the current implementation.
+    expect(await screen.findByText(/AML Risk Score/i)).toBeInTheDocument();
+    expect(await screen.findByText(/ANALYTIC REASONING/i)).toBeInTheDocument();
+    expect(await screen.findByText(/85/i)).toBeInTheDocument();
+    expect(await screen.findByText(/high-risk jurisdiction/i)).toBeInTheDocument();
+  });
 
-    // Verify the UI displays the required sections after polling resolves
-    // No need for await waitFor anymore, as timers are advanced.
-    expect(screen.getByText(/AML Risk Score/i)).toBeInTheDocument();
-    expect(screen.getByText(/Explanation \(Chain of Thought\)/i)).toBeInTheDocument();
-    expect(screen.getByText(/85/i)).toBeInTheDocument();
+  it('Test 3: Shows a mock-data not found message instead of defaulting to another company', async () => {
+    (global.fetch as any).mockImplementation((input: RequestInfo | URL) => {
+      const url = String(input);
+      if (url.includes('query=')) {
+        return Promise.resolve({
+          ok: true,
+          json: async () => ({ count: 0, items: [] }),
+        });
+      }
+      return Promise.resolve({
+        ok: true,
+        json: async () => ({ count: 1, items: [mockCompany] }),
+      });
+    });
 
-    vi.useRealTimers(); // Restore real timers after this test
+    render(<DashboardAML />);
+
+    const inputField = screen.getByPlaceholderText(/analyze company/i);
+    const submitButton = screen.getByRole('button', { name: /analyze/i });
+
+    fireEvent.change(inputField, { target: { value: 'Unknown Co XYZ' } });
+    fireEvent.click(submitButton);
+
+    expect(await screen.findByText(/was not found in mock data/i)).toBeInTheDocument();
   });
 });
