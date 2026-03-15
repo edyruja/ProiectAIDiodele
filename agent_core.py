@@ -150,13 +150,16 @@ class Orchestrator:
             company_data = fetch_company_data(company_name)
             analyst = AnalystAgent()
             analysis = analyst.analyse(company_data)
-            
-            # Phase 8: Database Persistence
-            self._save_to_db(analysis, company_data)
-            
+
+            # Stale-while-revalidate: upsert into DB and get the refreshed record back.
+            # `updated_profile` is the success signal – the frontend can use it to
+            # re-render with real data without an extra round-trip.
+            updated_profile = self._save_to_db(analysis, company_data)
+
             return {
                 "company_data": company_data,
                 "analysis": analysis.model_dump(),
+                "updated_profile": updated_profile,  # fresh DB record, ready for the UI
             }
 
         # Generic prompt – no tool calls needed
@@ -185,25 +188,88 @@ class Orchestrator:
                 return match.group(1).strip()
         return None
 
-    def _save_to_db(self, analysis: AnalystResponse, company_data: dict[str, Any]) -> None:
-        """Persist the analysis results to the PostgreSQL database."""
+    def _save_to_db(
+        self, analysis: AnalystResponse, company_data: dict[str, Any]
+    ) -> dict[str, Any]:
+        """Upsert analysis results into the SQLite database.
+
+        Stale-while-revalidate pattern:
+        1. Look for an existing CompanyProfile by registration_number (exact),
+           then fall back to a case-insensitive company_name match.
+        2. If found  → UPDATE every enriched field in-place.
+        3. If not found → INSERT a brand-new row.
+        4. Commit and return ``profile.to_dict()`` so the caller can forward
+           it to the frontend as the "data is now fresh" signal.
+
+        Returns:
+            The serialised profile dict after the commit, or ``{}`` on error.
+        """
+        import json as _json
+        from datetime import datetime, timezone
+        from sqlalchemy import func
+
         db = SessionLocal()
         try:
-            profile = CompanyProfile(
-                company_name=analysis.company_name,
-                registration_number=company_data.get("registration_number"),
-                country=company_data.get("country"),
-                risk_score=analysis.risk_score / 100.0,  # Convert to 0.0 - 1.0 range
-                risk_label=analysis.risk_level,
-                risk_explanation=analysis.chain_of_thought,
-                status=company_data.get("status"),
-                address=company_data.get("address"),
-            )
-            db.add(profile)
+            reg_num = company_data.get("registration_number")
+            profile: CompanyProfile | None = None
+
+            # 1. Try exact registration_number match first
+            if reg_num:
+                profile = (
+                    db.query(CompanyProfile)
+                    .filter(CompanyProfile.registration_number == reg_num)
+                    .first()
+                )
+
+            # 2. Fall back to case-insensitive name match
+            if profile is None:
+                profile = (
+                    db.query(CompanyProfile)
+                    .filter(
+                        func.lower(CompanyProfile.company_name)
+                        == func.lower(analysis.company_name)
+                    )
+                    .first()
+                )
+
+            if profile is None:
+                # 3. No existing record – create a new one
+                profile = CompanyProfile(
+                    company_name=analysis.company_name,
+                    created_at=datetime.now(timezone.utc),
+                )
+                db.add(profile)
+
+            # ----------------------------------------------------------------
+            # Apply all enriched / real-world values onto the profile
+            # ----------------------------------------------------------------
+            profile.registration_number = reg_num or profile.registration_number
+            profile.country              = company_data.get("country") or profile.country
+            profile.status               = company_data.get("status")  or profile.status
+            profile.address              = company_data.get("address") or profile.address
+
+            # Directors come back as a list from fetch_company_data
+            raw_directors = company_data.get("directors")
+            if raw_directors is not None:
+                profile.directors = _json.dumps(raw_directors)
+
+            # AML risk fields from the Analyst Agent
+            profile.risk_score       = analysis.risk_score / 100.0   # normalise 0-100 → 0.0-1.0
+            profile.risk_label       = analysis.risk_level
+            profile.risk_explanation = analysis.chain_of_thought
+
+            # Mark the record as freshly updated
+            profile.updated_at = datetime.now(timezone.utc)
+
             db.commit()
-        except Exception:
+            db.refresh(profile)
+            return profile.to_dict()
+
+        except Exception as exc:
             db.rollback()
-            # In a production system, we would log this error.
+            # Log but do not crash the worker – stale data is better than no data
+            print(f"[agent_core] _save_to_db error: {exc}")
+            return {}
         finally:
             db.close()
 

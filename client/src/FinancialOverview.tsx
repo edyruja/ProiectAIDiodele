@@ -9,20 +9,10 @@ interface Metric {
   subLabelColor?: string;
 }
 
-const metrics: Metric[][] = [
-  [
-    { label: 'Monthly Income', value: '$14,500', delta: '+2.4%', deltaPositive: true },
-    { label: 'Monthly Spending', value: '$38,100', delta: '+145%', deltaPositive: false, subLabel: 'Anomaly Detected', subLabelColor: '#ef4444' },
-    { label: 'Net Cash Flow', value: '-$23,600', delta: '-310%', deltaPositive: false },
-    { label: 'Carbon Footprint', value: '687.15 kg', delta: '-5.2%', deltaPositive: true },
-  ],
-  [
-    { label: 'Avg Income (6M)', value: '$14,200', delta: 'Stable baseline', deltaPositive: null },
-    { label: 'Avg Spending (6M)', value: '$12,800', delta: 'Anomaly Detected', deltaPositive: false, subLabelColor: '#ef4444' },
-    { label: 'Spending Median', value: '$11,500', delta: '+1.2%', deltaPositive: true },
-    { label: 'Monthly Buffer', value: '-$23,600', delta: 'Depleted', deltaPositive: false, subLabel: 'Depleted', subLabelColor: '#ef4444' },
-  ],
-];
+interface FinancialOverviewProps {
+  companyName: string;
+  riskScore?: number;
+}
 
 const TrendUpIcon = () => (
   <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
@@ -46,7 +36,44 @@ const DBIcon = () => (
   </svg>
 );
 
-const FinancialOverview: React.FC = () => {
+const FinancialOverview: React.FC<FinancialOverviewProps> = ({ companyName, riskScore = 0.5 }) => {
+  // Deterministic seed based on company name
+  const safeName = companyName || 'Unknown';
+  const seed = safeName.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
+  
+  // Calculate dynamic values
+  const multiplier = 1 + (seed % 10) / 10; // 1.0 to 1.9
+  const baseIncome = 10000 * multiplier;
+  
+  // Higher risk means spending is unusually high compared to income
+  const spendFactor = 0.7 + (riskScore * 1.5); // 0.7 to 2.2
+  const baseSpending = baseIncome * spendFactor;
+  
+  const netCashFlow = baseIncome - baseSpending;
+  
+  const isHighRisk = riskScore > 0.6;
+
+  const formatCurrency = (val: number) => 
+    `${val < 0 ? '-' : ''}$${Math.abs(Math.round(val)).toLocaleString()}`;
+    
+  // Simulated historical delta
+  const incomeDelta = (seed % 15) - 5; // -5 to +9 %
+  
+  const metrics: Metric[][] = [
+    [
+      { label: 'Monthly Income', value: formatCurrency(baseIncome), delta: `${incomeDelta > 0 ? '+' : ''}${incomeDelta}%`, deltaPositive: incomeDelta >= 0 },
+      { label: 'Monthly Spending', value: formatCurrency(baseSpending), delta: isHighRisk ? '+145%' : '+12%', deltaPositive: false, subLabel: isHighRisk ? 'Anomaly Detected' : undefined, subLabelColor: '#ef4444' },
+      { label: 'Net Cash Flow', value: formatCurrency(netCashFlow), delta: netCashFlow < 0 ? '-310%' : '+5%', deltaPositive: netCashFlow >= 0 },
+      { label: 'Carbon Footprint', value: `${(seed % 1000) + 100} kg`, delta: '-5.2%', deltaPositive: true },
+    ],
+    [
+      { label: 'Avg Income (6M)', value: formatCurrency(baseIncome * 0.95), delta: 'Stable baseline', deltaPositive: null },
+      { label: 'Avg Spending (6M)', value: formatCurrency(baseSpending * (isHighRisk ? 0.4 : 0.9)), delta: isHighRisk ? 'Anomaly Detected' : '+2.1%', deltaPositive: !isHighRisk, subLabelColor: isHighRisk ? '#ef4444' : undefined },
+      { label: 'Spending Median', value: formatCurrency(baseSpending * 0.8), delta: '+1.2%', deltaPositive: true },
+      { label: 'Monthly Buffer', value: formatCurrency(netCashFlow), delta: netCashFlow < 0 ? 'Depleted' : 'Healthy', deltaPositive: netCashFlow >= 0, subLabel: netCashFlow < 0 ? 'Depleted' : undefined, subLabelColor: netCashFlow < 0 ? '#ef4444' : undefined },
+    ],
+  ];
+
   return (
     <div style={{
       background: '#fff',
@@ -59,7 +86,7 @@ const FinancialOverview: React.FC = () => {
       <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '20px' }}>
         <span style={{ color: '#6b7280' }}><DBIcon /></span>
         <span style={{ fontSize: '11px', fontWeight: 700, color: '#374151', letterSpacing: '0.1em', textTransform: 'uppercase' }}>
-          PostgreSQL Financial Overview
+          PostgreSQL Financial Overview - {safeName}
         </span>
       </div>
 

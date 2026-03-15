@@ -15,10 +15,20 @@ import { Network } from 'lucide-react';
 
 interface AnalysisResult {
   risk_score: string;
-  risk_level: string;
-  chain_of_thought: string;
+  risk_level?: string;
+  risk_label?: string;
+  chain_of_thought?: string;
+  risk_explanation?: string;
   recommended_action?: string;
   company_name?: string;
+  registration_number?: string;
+  country?: string;
+  industry?: string;
+  incorporation_date?: string;
+  sanctions_hit?: boolean;
+  pep_exposure?: boolean;
+  directors?: string[];
+  address?: string;
 }
 
 const getRiskLevel = (riskScore: string): 'HIGH' | 'MEDIUM' | 'LOW' => {
@@ -104,6 +114,17 @@ const DashboardAML: React.FC = () => {
         });
         if (!response.ok) throw new Error('Failed to start analysis');
         const data = await response.json();
+        
+        if (data.cached_data) {
+          // Fast-path: we got data back from SQLite directly!
+          setResult(data.cached_data);
+          setCompanyData(data.cached_data);
+          setSubmittedName(companyName.toUpperCase());
+          setStatus('SUCCESS');
+          setLoading(false);
+          return;
+        }
+
         setTaskId(data.task_id);
         setSubmittedName(companyName.toUpperCase());
         setStatus('PENDING');
@@ -140,7 +161,10 @@ const DashboardAML: React.FC = () => {
       <div className="flex-1 overflow-y-auto p-6 scrollbar-thin">
         {/* Legacy Financial Overview Component */}
         <div className="mb-6">
-          <FinancialOverview />
+          <FinancialOverview 
+             companyName={result?.company_name || submittedName} 
+             riskScore={result?.risk_score ? Number(result.risk_score) : undefined} 
+          />
         </div>
 
         {/* --- SHADCN BENTO GRID LAYOUT --- */}
@@ -148,13 +172,18 @@ const DashboardAML: React.FC = () => {
           <div className="flex flex-col gap-6 animate-in fade-in slide-in-from-bottom-4 duration-500 mb-8">
             {/* Top Row: Risk Identity */}
             <RiskSummary 
-               riskScore={parseInt(result.risk_score) || 0}
-               riskLevel={result.risk_level || riskLevel}
+               riskScore={Number(result.risk_score) || 0}
+               riskLevel={result.risk_label || riskLevel}
                recommendedAction={result.recommended_action}
                registrationDetails={{
-                 number: companyData?.registration_number,
-                 country: companyData?.country
+                 number: result.registration_number || companyData?.registration_number,
+                 country: result.country || companyData?.country,
+                 industry: result.industry || companyData?.industry,
+                 incorporationDate: result.incorporation_date || companyData?.incorporation_date
                }}
+               trustScore={Math.round((1 - (Number(result.risk_score) || 0)) * 100)}
+               sanctionsHit={result.sanctions_hit ?? companyData?.sanctions_hit}
+               pepExposure={result.pep_exposure ?? companyData?.pep_exposure}
             />
 
             {/* Middle Row: Network Graph & Reasoning */}
@@ -169,16 +198,16 @@ const DashboardAML: React.FC = () => {
                 </CardHeader>
                 <CardContent className="p-0 h-[400px] bg-slate-50 relative">
                   <NetworkGraph 
-                    companyName={companyData?.name || result.company_name} 
-                    directors={companyData?.directors}
-                    address={companyData?.address}
+                    companyName={result.company_name || companyData?.name} 
+                    directors={result.directors || companyData?.directors}
+                    address={result.address || companyData?.address}
                   />
                 </CardContent>
               </Card>
 
               {/* Reasoning Card spans 1 column */}
               <div className="lg:col-span-1 h-[400px]">
-                <ReasoningView chainOfThought={result.chain_of_thought} />
+                <ReasoningView chainOfThought={result.risk_explanation || result.chain_of_thought || ''} />
               </div>
             </div>
           </div>

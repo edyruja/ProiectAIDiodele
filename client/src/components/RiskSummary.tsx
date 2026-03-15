@@ -10,10 +10,15 @@ interface RiskSummaryProps {
   registrationDetails?: {
     number?: string;
     country?: string;
+    industry?: string;
+    incorporationDate?: string;
   };
+  trustScore?: number;
+  sanctionsHit?: boolean;
+  pepExposure?: boolean;
 }
 
-export function RiskSummary({ riskScore, riskLevel, recommendedAction, registrationDetails }: RiskSummaryProps) {
+export function RiskSummary({ riskScore, riskLevel, recommendedAction, registrationDetails, trustScore, sanctionsHit, pepExposure }: RiskSummaryProps) {
   const isHighRisk = riskLevel === 'HIGH' || riskLevel === 'CRITICAL';
   const isMediumRisk = riskLevel === 'MEDIUM';
 
@@ -42,15 +47,28 @@ export function RiskSummary({ riskScore, riskLevel, recommendedAction, registrat
       </CardHeader>
       
       <CardContent className="p-6">
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {/* Score */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+          {/* Risk Score */}
           <div className="space-y-1">
             <h3 className="text-xs font-bold text-muted-foreground uppercase tracking-wider">
               AML Risk Score
             </h3>
             <div className="flex items-baseline gap-2">
               <span className={`text-4xl font-extrabold ${isHighRisk ? 'text-red-600' : isMediumRisk ? 'text-yellow-600' : 'text-green-600'}`}>
-                {riskScore}
+                {riskScore * 100}
+              </span>
+              <span className="text-muted-foreground font-medium">/ 100</span>
+            </div>
+          </div>
+
+          {/* Trust Score */}
+          <div className="space-y-1">
+            <h3 className="text-xs font-bold text-muted-foreground uppercase tracking-wider">
+              Trust Score
+            </h3>
+            <div className="flex items-baseline gap-2">
+              <span className={`text-4xl font-extrabold ${trustScore !== undefined && trustScore < 50 ? 'text-red-600' : trustScore !== undefined && trustScore < 80 ? 'text-yellow-600' : 'text-green-600'}`}>
+                {trustScore ?? 'N/A'}
               </span>
               <span className="text-muted-foreground font-medium">/ 100</span>
             </div>
@@ -59,23 +77,31 @@ export function RiskSummary({ riskScore, riskLevel, recommendedAction, registrat
           {/* Registration Info */}
           <div className="space-y-1">
             <h3 className="text-xs font-bold text-muted-foreground uppercase tracking-wider">
-              Registration Details
+              Company Details
             </h3>
             <p className="text-sm font-medium text-slate-700">{registrationDetails?.number || 'N/A'}</p>
-            <p className="text-xs text-slate-500">{registrationDetails?.country || 'Unknown Location'}</p>
+            <p className="text-xs text-slate-500">{registrationDetails?.industry} • {registrationDetails?.country}</p>
+            <p className="text-xs text-slate-500">Inc: {registrationDetails?.incorporationDate || 'Unknown'}</p>
           </div>
 
-          {/* Action */}
-          {recommendedAction && (
-             <div className="space-y-1">
-               <h3 className="text-xs font-bold text-muted-foreground uppercase tracking-wider">
-                 Recommended Action
-               </h3>
-               <p className="text-sm font-semibold text-slate-800 bg-slate-100 rounded-md px-3 py-1.5 inline-block">
-                 {recommendedAction}
-               </p>
-             </div>
-          )}
+          {/* Alerts */}
+          <div className="space-y-2">
+            <h3 className="text-xs font-bold text-muted-foreground uppercase tracking-wider">
+               Critical Alerts
+            </h3>
+            <div className="flex flex-col gap-2">
+               {sanctionsHit ? (
+                 <Badge variant="destructive" className="w-fit">Sanctions: YES</Badge>
+               ) : (
+                 <Badge variant="secondary" className="w-fit bg-green-100 text-green-800 hover:bg-green-100">Sanctions: NO</Badge>
+               )}
+               {pepExposure ? (
+                 <Badge variant="destructive" className="w-fit">PEP Exposure: YES</Badge>
+               ) : (
+                 <Badge variant="secondary" className="w-fit bg-green-100 text-green-800 hover:bg-green-100">PEP: NO</Badge>
+               )}
+            </div>
+          </div>
         </div>
       </CardContent>
     </Card>

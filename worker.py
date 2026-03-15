@@ -21,6 +21,9 @@ celery_app.conf.update(
     result_serializer="json",
     timezone="UTC",
     enable_utc=True,
+    broker_connection_retry_on_startup=False,
+    broker_connection_max_retries=1,
+    broker_connection_timeout=1.0,
 )
 
 @celery_app.task(name="aml_worker.run_osint_analysis", bind=True, max_retries=3)
@@ -31,6 +34,13 @@ def run_osint_analysis(self, company_name: str) -> dict:
     - OSINT data scraping
     - Vector database retrieval
     - LLM complex reasoning
+
+    On SUCCESS the returned dict contains:
+        - ``company_data``    – raw OSINT payload
+        - ``analysis``        – structured AnalystResponse fields
+        - ``updated_profile`` – the freshly committed CompanyProfile row (to_dict()).
+                                Frontend can use this as the "data is fresh" signal
+                                to re-render without an extra /api/companies poll.
     """
     try:
         prompt = f"Please analyse {company_name} for AML risk."
