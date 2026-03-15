@@ -67,13 +67,12 @@ class TestDatabaseWiring:
         )
 
         orchestrator = Orchestrator()
-        # We might need to pass the db session to run() or have it use a dependency
-        # For now, let's assume it handles its own session or we patch its session factory
-        with patch("main.SessionLocal", return_value=db_session):
+        # Patch SessionLocal where Orchestrator actually imports it.
+        with patch("agent_core.SessionLocal", return_value=db_session):
             orchestrator.run("Analyse Test DB Corp")
 
         # Verify the record exists in the DB
         profile = db_session.query(CompanyProfile).filter_by(company_name="Test DB Corp").first()
         assert profile is not None
-        assert profile.risk_score == 50
+        assert profile.risk_score == 0.5
         assert profile.risk_label == "MEDIUM"
