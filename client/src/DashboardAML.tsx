@@ -190,11 +190,59 @@ const DashboardAML: React.FC = () => {
         return;
       }
 
+      // No mock match found - fallback to real AI Analysis
+      setStatus('STARTING_AI_ANALYSIS');
+      const aiResponse = await fetch(`${API_BASE}/analyze-company-sync`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ company_name: normalizedName }),
+      });
+
+      if (!aiResponse.ok) {
+        const errorData = await aiResponse.json();
+        throw new Error(errorData.detail || 'AI analysis request failed');
+      }
+
+      const aiPayload = await aiResponse.json();
+      if (aiPayload.status === 'SUCCESS' && aiPayload.result) {
+        const { analysis, company_data: realData } = aiPayload.result;
+        
+        // Map real company data to our record structure with safe defaults
+        const record: CompanyRecord = {
+          id: -1,
+          company_name: analysis?.company_name || normalizedName,
+          registration_number: realData?.registration_number || analysis?.registration_number || 'N/A',
+          country: realData?.country || analysis?.country || 'Global',
+          risk_score: (analysis?.risk_score || 0) / 100,
+          risk_label: analysis?.risk_level || 'HIGH',
+          risk_explanation: analysis?.chain_of_thought || 'No explanation provided.',
+          address: realData?.address || 'OSINT Detected',
+          directors: Array.isArray(analysis?.directors) ? analysis.directors : [], // Ensure directors is at least []
+          revenue: realData?.revenue || 0,
+          average_monthly_spend: realData?.average_monthly_spend || 0,
+          expense_categories: {},
+          budget_breakdown: { need: 33, want: 33, save: 34 }
+        };
+
+        setCompanyData(record);
+        setResult({
+          company_name: analysis?.company_name || normalizedName,
+          risk_score: String(analysis?.risk_score || 0),
+          risk_level: analysis?.risk_level || 'HIGH',
+          chain_of_thought: analysis?.chain_of_thought || 'Analysis complete.',
+          recommended_action: analysis?.recommended_action || 'Review required'
+        });
+        
+        setStatus('AI_ANALYSIS_COMPLETE');
+        setLoading(false);
+        return;
+      }
+
       setStatus('NOT_FOUND');
-      setError(`Company \"${normalizedName}\" was not found in mock data. Try an exact or partial mock company name.`);
+      setError(`Analysis for \"${normalizedName}\" could not be completed.`);
       setLoading(false);
     } catch (err: any) {
-      setError(err.message || 'Unknown error');
+      setError(err.message || 'Unknown error during analysis');
       setLoading(false);
     }
   };

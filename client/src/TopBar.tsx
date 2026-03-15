@@ -7,8 +7,9 @@ interface TopBarProps {
   children?: React.ReactNode;
 }
 
-const riskConfig = {
+const riskConfig: Record<string, any> = {
   HIGH: { label: 'HIGH RISK', bg: 'var(--risk-high-bg)', border: 'var(--risk-high-border)', text: 'var(--risk-high)', dot: 'var(--risk-high)' },
+  CRITICAL: { label: 'CRITICAL', bg: 'var(--risk-high-bg)', border: 'var(--risk-high-border)', text: 'var(--risk-high)', dot: 'var(--risk-high)' },
   MEDIUM: { label: 'MEDIUM RISK', bg: 'var(--risk-medium-bg)', border: 'rgba(255, 149, 0, 0.2)', text: 'var(--risk-medium)', dot: 'var(--risk-medium)' },
   LOW: { label: 'LOW RISK', bg: 'var(--risk-low-bg)', border: 'var(--risk-low-border)', text: 'var(--risk-low)', dot: 'var(--risk-low)' },
 };
@@ -25,7 +26,8 @@ const TopBar: React.FC<TopBarProps> = ({
   onHITLConfirm,
   children,
 }) => {
-  const risk = riskConfig[riskLevel];
+  const normalizedLevel = (riskLevel || 'LOW').toUpperCase();
+  const risk = riskConfig[normalizedLevel] || riskConfig.LOW;
 
   return (
     <header style={{

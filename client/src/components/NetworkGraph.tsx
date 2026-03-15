@@ -43,7 +43,7 @@ const NetworkGraph: React.FC<NetworkGraphProps> = ({
     ];
 
     // Add director nodes
-    directors.forEach((director, index) => {
+    (directors || []).forEach((director, index) => {
       initialNodes.push({
         id: `director-${index}`,
         data: { label: `Director: ${director}` },
@@ -63,7 +63,7 @@ const NetworkGraph: React.FC<NetworkGraphProps> = ({
       });
     }
 
-    relatedCompanies.forEach((company, index) => {
+    (relatedCompanies || []).forEach((company, index) => {
       initialNodes.push({
         id: `peer-${index}`,
         data: {
@@ -90,7 +90,7 @@ const NetworkGraph: React.FC<NetworkGraphProps> = ({
   const edges = useMemo(() => {
     const initialEdges: Edge[] = [];
 
-    directors.forEach((_, index) => {
+    (directors || []).forEach((_, index) => {
       initialEdges.push({
         id: `e-main-director-${index}`,
         source: 'main-company',
@@ -110,7 +110,7 @@ const NetworkGraph: React.FC<NetworkGraphProps> = ({
       });
     }
 
-    relatedCompanies.forEach((company, index) => {
+    (relatedCompanies || []).forEach((company, index) => {
       initialEdges.push({
         id: `e-main-peer-${index}`,
         source: 'main-company',
