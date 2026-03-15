@@ -1,4 +1,9 @@
 {
     "python.defaultInterpreterPath": "${workspaceFolder}\\venv\\Scripts\\python.exe",
-    "python.terminal.activateEnvironment": true
+    "python.terminal.activateEnvironment": true,
+    "builder.serverUrl": "",
+    "builder.command": "",
+    "builder.runDevServer": true,
+    "builder.autoDetectDevServer": true,
+    "builder.launchType": "editor"
 }

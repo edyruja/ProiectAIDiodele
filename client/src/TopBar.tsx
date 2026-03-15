@@ -42,20 +42,8 @@ const TopBar: React.FC<TopBarProps> = ({
       top: 0,
       zIndex: 10,
     }}>
-      {/* Title Area */}
-      <div style={{ flex: 1 }}>
-        <h1 style={{ 
-          margin: 0, 
-          fontSize: '20px', 
-          fontWeight: 700, 
-          color: 'var(--text-primary)', 
-          lineHeight: 1.1,
-          letterSpacing: '-0.02em'
-        }}>
-          CDD &amp; OSINT Investigation
-        </h1>
-        <div style={{ fontSize: '12px', color: 'var(--text-secondary)', marginTop: '2px' }}>Vestra Intelligence Platform</div>
-      </div>
+      {/* Left spacer keeps entity/risk/actions in the same visual position */}
+      <div style={{ flex: 1 }} />
 
       {/* Entity Badge */}
       <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>

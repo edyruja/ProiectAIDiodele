@@ -60,15 +60,26 @@ const Sidebar: React.FC = () => {
         backdropFilter: 'var(--apple-blur)',
       }}
     >
-      {/* Logo Area */}
-      <div style={{ padding: '32px 16px 20px', display: 'flex', alignItems: 'center', justifyContent: 'flex-start' }}>
-        <img src="/logo.png" alt="Vestra" style={{ 
-          width: '85%', 
-          height: 'auto', 
-          maxHeight: '100px', 
-          objectFit: 'contain',
-          filter: 'drop-shadow(0 0 8px rgba(255,255,255,0.1))'
-        }} />
+      {/* Brand Area */}
+      <div style={{ padding: '28px 20px 16px' }}>
+        <div style={{
+          margin: 0,
+          fontSize: '30px',
+          fontWeight: 900,
+          color: 'var(--text-primary)',
+          lineHeight: 1,
+          letterSpacing: '-0.03em',
+          fontFamily: '"Helvetica Neue", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif',
+          textTransform: 'uppercase',
+          display: 'flex',
+          alignItems: 'center',
+          gap: '4px'
+        }}>
+          Vestra<sup style={{ fontSize: '12px', fontWeight: 700, opacity: 0.8 }}>®</sup>
+        </div>
+        <div style={{ fontSize: '11px', color: 'var(--text-secondary)', marginTop: '6px', fontWeight: 500, letterSpacing: '0.05em', textTransform: 'uppercase' }}>
+          Intelligence Platform
+        </div>
       </div>
 
       {/* Navigation */}
