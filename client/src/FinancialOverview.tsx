@@ -14,13 +14,11 @@ const metrics: Metric[][] = [
     { label: 'Monthly Income', value: '$14,500', delta: '+2.4%', deltaPositive: true },
     { label: 'Monthly Spending', value: '$38,100', delta: '+145%', deltaPositive: false, subLabel: 'Anomaly Detected', subLabelColor: '#ef4444' },
     { label: 'Net Cash Flow', value: '-$23,600', delta: '-310%', deltaPositive: false },
-    { label: 'Carbon Footprint', value: '687.15 kg', delta: '-5.2%', deltaPositive: true },
   ],
   [
     { label: 'Avg Income (6M)', value: '$14,200', delta: 'Stable baseline', deltaPositive: null },
     { label: 'Avg Spending (6M)', value: '$12,800', delta: 'Anomaly Detected', deltaPositive: false, subLabelColor: '#ef4444' },
     { label: 'Spending Median', value: '$11,500', delta: '+1.2%', deltaPositive: true },
-    { label: 'Monthly Buffer', value: '-$23,600', delta: 'Depleted', deltaPositive: false, subLabel: 'Depleted', subLabelColor: '#ef4444' },
   ],
 ];
 
@@ -49,24 +47,27 @@ const DBIcon = () => (
 const FinancialOverview: React.FC = () => {
   return (
     <div style={{
-      background: '#fff',
-      borderRadius: '12px',
-      border: '1px solid #e4e9f2',
-      padding: '20px 24px',
-      boxShadow: '0 1px 4px rgba(0,0,0,0.06)',
+      background: 'var(--card-bg)',
+      borderRadius: '20px',
+      border: '1px solid var(--card-border)',
+      padding: '32px',
+      boxShadow: 'var(--card-shadow)',
+      backdropFilter: 'var(--apple-blur)',
     }}>
       {/* Header */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '20px' }}>
-        <span style={{ color: '#6b7280' }}><DBIcon /></span>
-        <span style={{ fontSize: '11px', fontWeight: 700, color: '#374151', letterSpacing: '0.1em', textTransform: 'uppercase' }}>
-          PostgreSQL Financial Overview
+      <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '32px' }}>
+        <div style={{ color: 'var(--apple-blue)', background: 'rgba(0,122,255,0.05)', padding: '6px', borderRadius: '8px' }}>
+          <DBIcon />
+        </div>
+        <span style={{ fontSize: '13px', fontWeight: 700, color: 'var(--text-primary)', letterSpacing: '-0.01em' }}>
+          Financial Overview Context
         </span>
       </div>
 
       {/* Metrics Grid */}
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '32px' }}>
         {metrics.map((row, rowIdx) => (
-          <div key={rowIdx} style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '16px' }}>
+          <div key={rowIdx} style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '40px' }}>
             {row.map((metric, idx) => (
               <MetricCard key={idx} metric={metric} />
             ))}
@@ -79,26 +80,48 @@ const FinancialOverview: React.FC = () => {
 
 const MetricCard: React.FC<{ metric: Metric }> = ({ metric }) => {
   const isNegativeValue = metric.value.startsWith('-');
-  const valueColor = isNegativeValue ? '#ef4444' : '#0f1117';
+  const valueColor = isNegativeValue ? 'var(--risk-high)' : 'var(--text-primary)';
 
   const getDeltaColor = () => {
-    if (metric.deltaPositive === null) return '#6b7280';
-    return metric.deltaPositive ? '#10b981' : '#ef4444';
+    if (metric.deltaPositive === null) return 'var(--text-secondary)';
+    return metric.deltaPositive ? 'var(--risk-low)' : 'var(--risk-high)';
   };
 
   const deltaColor = getDeltaColor();
 
   return (
-    <div>
-      <div style={{ fontSize: '11px', color: '#9ca3af', marginBottom: '4px', fontWeight: 400 }}>{metric.label}</div>
-      <div style={{ fontSize: '20px', fontWeight: 700, color: valueColor, letterSpacing: '-0.02em', lineHeight: 1.2, marginBottom: '4px' }}>
+    <div className="flex flex-col gap-1">
+      <div style={{ fontSize: '12px', color: 'var(--text-secondary)', fontWeight: 500, letterSpacing: '-0.01em' }}>{metric.label}</div>
+      <div style={{ fontSize: '24px', fontWeight: 700, color: valueColor, letterSpacing: '-0.03em', lineHeight: 1.1 }}>
         {metric.value}
       </div>
-      <div style={{ display: 'flex', alignItems: 'center', gap: '4px', color: deltaColor, fontSize: '11px', fontWeight: 500 }}>
-        {metric.deltaPositive === true && <TrendUpIcon />}
-        {metric.deltaPositive === false && <TrendDownIcon />}
+      <div style={{ 
+        display: 'inline-flex', 
+        alignItems: 'center', 
+        gap: '4px', 
+        color: deltaColor, 
+        fontSize: '13px', 
+        fontWeight: 600,
+        marginTop: '2px'
+      }}>
+        <div style={{ opacity: 0.8 }}>
+          {metric.deltaPositive === true && <TrendUpIcon />}
+          {metric.deltaPositive === false && <TrendDownIcon />}
+        </div>
         <span>{metric.delta}</span>
       </div>
+      {metric.subLabel && (
+        <div style={{ 
+          fontSize: '11px', 
+          fontWeight: 600, 
+          color: metric.subLabelColor || '#86868b',
+          textTransform: 'uppercase',
+          letterSpacing: '0.05em',
+          marginTop: '4px'
+        }}>
+          {metric.subLabel}
+        </div>
+      )}
     </div>
   );
 };

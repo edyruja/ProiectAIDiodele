@@ -7,10 +7,10 @@ interface PaymentChannel {
 }
 
 const paymentChannels: PaymentChannel[] = [
-  { name: 'POS (Point of Sale)', pct: 18, color: '#3b82f6' },
-  { name: 'Offshore', pct: 41, color: '#ef4444' },
-  { name: 'Crypto Exchanges', pct: 28, color: '#f59e0b' },
-  { name: 'Wire Transfer (EU)', pct: 13, color: '#10b981' },
+  { name: 'POS (Point of Sale)', pct: 18, color: '#007aff' },
+  { name: 'Offshore', pct: 41, color: '#ff3b30' },
+  { name: 'Crypto Exchanges', pct: 28, color: '#ff9500' },
+  { name: 'Wire Transfer (EU)', pct: 13, color: '#34c759' },
 ];
 
 // SVG line chart data points (normalized 0-100 viewbox height, inverted)
@@ -37,47 +37,51 @@ const TransactionAnalytics: React.FC = () => {
 
   return (
     <div style={{
-      background: '#fff',
-      borderRadius: '12px',
-      border: '1px solid #e4e9f2',
-      padding: '20px',
-      boxShadow: '0 1px 4px rgba(0,0,0,0.06)',
+      background: 'var(--card-bg)',
+      borderRadius: '20px',
+      border: '1px solid var(--card-border)',
+      padding: '24px 32px',
+      boxShadow: 'var(--card-shadow)',
       display: 'flex',
       flexDirection: 'column',
+      backdropFilter: 'var(--apple-blur)',
     }}>
-      <div style={{ fontSize: '11px', fontWeight: 700, color: '#374151', letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: '16px' }}>
-        Transaction Analytics
+      <div style={{ fontSize: '13px', fontWeight: 700, color: 'var(--text-primary)', marginBottom: '24px', letterSpacing: '-0.01em' }}>
+        Transaction Analytics Trend
       </div>
 
       {/* Legend */}
-      <div style={{ fontSize: '12px', color: '#374151', fontWeight: 600, marginBottom: '6px' }}>Income vs Spending Trend</div>
-      <div style={{ display: 'flex', gap: '14px', marginBottom: '12px' }}>
-        <LegendDot color="#3b82f6" label="Income" />
-        <LegendDot color="#93c5fd" label="Spending" />
+      <div style={{ fontSize: '14px', color: 'var(--text-primary)', fontWeight: 600, marginBottom: '12px', letterSpacing: '-0.02em' }}>
+        Income vs Spending
+      </div>
+      <div style={{ display: 'flex', gap: '20px', marginBottom: '20px' }}>
+        <LegendDot color="var(--apple-blue)" label="Monthly Income" />
+        <LegendDot color="var(--apple-blue)" opacity={0.3} label="Monthly Spending" />
       </div>
 
       {/* SVG Chart */}
-      <div style={{ overflowX: 'hidden', marginBottom: '6px' }}>
-        <svg width="100%" viewBox={`0 0 ${W} ${H + 20}`} style={{ display: 'block' }}>
+      <div style={{ overflowX: 'hidden', marginBottom: '24px' }}>
+        <svg width="100%" viewBox={`0 0 ${W} ${H + 24}`} style={{ display: 'block' }}>
           {/* Spending area */}
-          <path d={spendingArea} fill="rgba(147,197,253,0.15)" />
+          <path d={spendingArea} fill="var(--apple-blue)" fillOpacity="0.05" />
           {/* Income area */}
-          <path d={incomeArea} fill="rgba(59,130,246,0.10)" />
+          <path d={incomeArea} fill="var(--apple-blue)" fillOpacity="0.08" />
           {/* Spending line */}
-          <path d={spendingPath} fill="none" stroke="#93c5fd" strokeWidth="2" strokeLinejoin="round" strokeLinecap="round" />
+          <path d={spendingPath} fill="none" stroke="var(--apple-blue)" strokeOpacity="0.4" strokeWidth="2.5" strokeLinejoin="round" strokeLinecap="round" />
           {/* Income line */}
-          <path d={incomePath} fill="none" stroke="#3b82f6" strokeWidth="2.5" strokeLinejoin="round" strokeLinecap="round" />
+          <path d={incomePath} fill="none" stroke="var(--apple-blue)" strokeWidth="3" strokeLinejoin="round" strokeLinecap="round" />
 
           {/* X-axis labels */}
           {months.map((m, i) => (
             <text
               key={m}
               x={(i / (months.length - 1)) * W}
-              y={H + 16}
+              y={H + 20}
               textAnchor="middle"
-              fontSize="9"
-              fill="#9ca3af"
-              fontFamily="Inter, sans-serif"
+              fontSize="11"
+              fontWeight="500"
+              fill="var(--text-secondary)"
+              fontFamily="Geist Variable, sans-serif"
             >
               {m}
             </text>
@@ -87,24 +91,27 @@ const TransactionAnalytics: React.FC = () => {
 
       {/* Payment Channels */}
       <div>
-        <div style={{ fontSize: '11px', fontWeight: 700, color: '#374151', marginBottom: '8px' }}>Payment Channels</div>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+        <div style={{ fontSize: '11px', fontWeight: 700, color: 'var(--text-secondary)', textTransform: 'uppercase', marginBottom: '16px', letterSpacing: '0.04em' }}>
+          Payment Channel Analysis
+        </div>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
           {paymentChannels.map(ch => (
-            <div key={ch.name} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flex: 1 }}>
+            <div key={ch.name} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '12px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flex: 1 }}>
                 <div style={{
-                  width: '8px', height: '8px', borderRadius: '2px',
+                  width: '10px', height: '10px', borderRadius: '50%',
                   background: ch.color, flexShrink: 0,
+                  boxShadow: `0 0 6px ${ch.color}40`
                 }} />
-                <span style={{ fontSize: '11px', color: '#6b7280', flex: 1 }}>{ch.name}</span>
+                <span style={{ fontSize: '13px', color: 'var(--text-primary)', fontWeight: 500, flex: 1 }}>{ch.name}</span>
               </div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
                 <div style={{
-                  width: '60px', height: '4px', background: '#f3f4f6', borderRadius: '2px', overflow: 'hidden',
+                  width: '80px', height: '6px', background: 'rgba(255,255,255,0.05)', borderRadius: '4px', overflow: 'hidden',
                 }}>
-                  <div style={{ width: `${ch.pct}%`, height: '100%', background: ch.color, borderRadius: '2px' }} />
+                  <div style={{ width: `${ch.pct}%`, height: '100%', background: ch.color, borderRadius: '4px' }} />
                 </div>
-                <span style={{ fontSize: '11px', fontWeight: 600, color: ch.color, width: '28px', textAlign: 'right' }}>{ch.pct}%</span>
+                <span style={{ fontSize: '12px', fontWeight: 700, color: 'var(--text-primary)', width: '32px', textAlign: 'right' }}>{ch.pct}%</span>
               </div>
             </div>
           ))}
@@ -114,10 +121,10 @@ const TransactionAnalytics: React.FC = () => {
   );
 };
 
-const LegendDot: React.FC<{ color: string; label: string }> = ({ color, label }) => (
+const LegendDot: React.FC<{ color: string; label: string; opacity?: number }> = ({ color, label, opacity = 1 }) => (
   <div style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
-    <div style={{ width: '10px', height: '10px', borderRadius: '50%', background: color }} />
-    <span style={{ fontSize: '11px', color: '#6b7280' }}>{label}</span>
+    <div style={{ width: '10px', height: '10px', borderRadius: '50%', background: color, opacity }} />
+    <span style={{ fontSize: '11px', color: 'var(--text-secondary)' }}>{label}</span>
   </div>
 );
 

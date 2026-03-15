@@ -18,62 +18,66 @@ export function RiskSummary({ riskScore, riskLevel, recommendedAction, registrat
   const isMediumRisk = riskLevel === 'MEDIUM';
 
   const getRiskIcon = () => {
-    if (isHighRisk) return <ShieldAlert className="h-5 w-5 text-red-500" />;
-    if (isMediumRisk) return <Shield className="h-5 w-5 text-yellow-500" />;
-    return <ShieldCheck className="h-5 w-5 text-green-500" />;
+    if (isHighRisk) return <ShieldAlert className="h-5 w-5 text-[var(--risk-high)]" />;
+    if (isMediumRisk) return <Shield className="h-5 w-5 text-[var(--risk-medium)]" />;
+    return <ShieldCheck className="h-5 w-5 text-[var(--risk-low)]" />;
   };
 
   const getBadgeVariant = () => {
     if (isHighRisk) return "destructive";
-    if (isMediumRisk) return "secondary"; // Will style in CSS
+    if (isMediumRisk) return "secondary";
     return "default";
   };
 
   return (
-    <Card className="shadow-sm border-slate-200">
-      <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 bg-slate-50 border-b border-gray-100 rounded-t-lg">
-        <CardTitle className="text-xl font-semibold text-slate-800 flex items-center">
-          {getRiskIcon()}
-          <span className="ml-2">Risk Identity</span>
+    <Card className="hover:shadow-[0_12px_40px_rgba(0,0,0,0.2)]">
+      <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-4 border-b border-white/[0.03]">
+        <CardTitle className="text-[19px] font-bold text-[var(--text-primary)] flex items-center">
+          <div className="mr-3 p-1.5 bg-white/[0.05] rounded-full">
+            {getRiskIcon()}
+          </div>
+          Risk Identity
         </CardTitle>
-        <Badge variant={getBadgeVariant()} className="text-sm font-bold animate-in fade-in">
+        <Badge variant={getBadgeVariant()} className="px-4 py-1.5 rounded-full text-[12px] font-bold tracking-tight shadow-sm border-none">
           {riskLevel}
         </Badge>
       </CardHeader>
       
-      <CardContent className="p-6">
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+      <CardContent className="p-8">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-10">
           {/* Score */}
-          <div className="space-y-1">
-            <h3 className="text-xs font-bold text-muted-foreground uppercase tracking-wider">
+          <div className="space-y-2">
+            <h3 className="text-[11px] font-bold text-[var(--text-secondary)] uppercase tracking-[0.08em]">
               AML Risk Score
             </h3>
             <div className="flex items-baseline gap-2">
-              <span className={`text-4xl font-extrabold ${isHighRisk ? 'text-red-600' : isMediumRisk ? 'text-yellow-600' : 'text-green-600'}`}>
+              <span className={`text-5xl font-extrabold tracking-tighter ${isHighRisk ? 'text-[var(--risk-high)]' : isMediumRisk ? 'text-[var(--risk-medium)]' : 'text-[var(--risk-low)]'}`}>
                 {riskScore}
               </span>
-              <span className="text-muted-foreground font-medium">/ 100</span>
+              <span className="text-[var(--text-secondary)] font-medium text-[15px]">/ 100</span>
             </div>
           </div>
 
           {/* Registration Info */}
-          <div className="space-y-1">
-            <h3 className="text-xs font-bold text-muted-foreground uppercase tracking-wider">
+          <div className="space-y-2">
+            <h3 className="text-[11px] font-bold text-[var(--text-secondary)] uppercase tracking-[0.08em]">
               Registration Details
             </h3>
-            <p className="text-sm font-medium text-slate-700">{registrationDetails?.number || 'N/A'}</p>
-            <p className="text-xs text-slate-500">{registrationDetails?.country || 'Unknown Location'}</p>
+            <p className="text-[16px] font-semibold text-[var(--text-primary)]">{registrationDetails?.number || 'N/A'}</p>
+            <p className="text-[13px] text-[var(--text-secondary)] font-medium">{registrationDetails?.country || 'Unknown Location'}</p>
           </div>
 
           {/* Action */}
           {recommendedAction && (
-             <div className="space-y-1">
-               <h3 className="text-xs font-bold text-muted-foreground uppercase tracking-wider">
+             <div className="space-y-2">
+               <h3 className="text-[11px] font-bold text-[var(--text-secondary)] uppercase tracking-[0.08em]">
                  Recommended Action
                </h3>
-               <p className="text-sm font-semibold text-slate-800 bg-slate-100 rounded-md px-3 py-1.5 inline-block">
-                 {recommendedAction}
-               </p>
+               <div className="inline-flex items-center px-4 py-2 bg-white/[0.05] rounded-full border border-white/[0.05]">
+                 <p className="text-[13px] font-bold text-[var(--text-primary)]">
+                   {recommendedAction}
+                 </p>
+               </div>
              </div>
           )}
         </div>

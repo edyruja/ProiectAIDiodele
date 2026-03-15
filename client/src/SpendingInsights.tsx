@@ -14,12 +14,6 @@ const categories: Category[] = [
   { name: 'Restaurants / Retail', pct: 7, riskLevel: 'low' },
 ];
 
-const riskColors: Record<string, string> = {
-  high: '#ef4444',
-  medium: '#f59e0b',
-  low: '#10b981',
-};
-
 const AlertIcon = () => (
   <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
     <path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/>
@@ -28,39 +22,46 @@ const AlertIcon = () => (
   </svg>
 );
 
+const riskColors: Record<string, string> = {
+  high: 'var(--risk-high)',
+  medium: 'var(--risk-medium)',
+  low: 'var(--risk-low)',
+};
+
 const SpendingInsights: React.FC = () => {
   return (
     <div style={{
-      background: '#fff',
-      borderRadius: '12px',
-      border: '1px solid #e4e9f2',
-      padding: '20px',
-      boxShadow: '0 1px 4px rgba(0,0,0,0.06)',
+      background: 'var(--card-bg)',
+      borderRadius: '20px',
+      border: '1px solid var(--card-border)',
+      padding: '24px 32px',
+      boxShadow: 'var(--card-shadow)',
+      backdropFilter: 'var(--apple-blur)',
     }}>
-      <div style={{ fontSize: '11px', fontWeight: 700, color: '#374151', letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: '16px' }}>
-        Spending Insights
+      <div style={{ fontSize: '13px', fontWeight: 700, color: 'var(--text-primary)', letterSpacing: '-0.01em', marginBottom: '24px' }}>
+        Spending Analysis Insights
       </div>
 
-      <div style={{ fontSize: '11px', fontWeight: 700, color: '#6b7280', letterSpacing: '0.08em', textTransform: 'uppercase', marginBottom: '10px' }}>
-        Top Categories
+      <div style={{ fontSize: '11px', fontWeight: 700, color: 'var(--text-secondary)', letterSpacing: '0.04em', textTransform: 'uppercase', marginBottom: '16px' }}>
+        TOP CATEGORIES
       </div>
 
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginBottom: '16px' }}>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '14px', marginBottom: '24px' }}>
         {categories.map((cat) => (
           <div key={cat.name}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '3px' }}>
-              <span style={{ fontSize: '11px', color: '#374151' }}>{cat.name}</span>
-              <span style={{ fontSize: '11px', fontWeight: 700, color: riskColors[cat.riskLevel] }}>{cat.pct}%</span>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
+              <span style={{ fontSize: '13px', fontWeight: 500, color: 'var(--text-primary)' }}>{cat.name}</span>
+              <span style={{ fontSize: '13px', fontWeight: 700, color: riskColors[cat.riskLevel] }}>{cat.pct}%</span>
             </div>
             <div style={{
-              height: '4px', background: '#f3f4f6', borderRadius: '2px', overflow: 'hidden',
+              height: '6px', background: 'rgba(255,255,255,0.04)', borderRadius: '4px', overflow: 'hidden',
             }}>
               <div style={{
                 height: '100%',
                 width: `${cat.pct}%`,
                 background: riskColors[cat.riskLevel],
-                borderRadius: '2px',
-                transition: 'width 0.8s ease',
+                borderRadius: '4px',
+                transition: 'width 0.8s cubic-bezier(0.4, 0, 0.2, 1)',
               }} />
             </div>
           </div>
@@ -69,17 +70,17 @@ const SpendingInsights: React.FC = () => {
 
       {/* Risk Flag */}
       <div style={{
-        background: '#fef3f2',
-        border: '1px solid #fecaca',
-        borderRadius: '8px',
-        padding: '10px 12px',
+        background: 'var(--risk-high-bg)',
+        border: '1px solid var(--risk-high-border)',
+        borderRadius: '16px',
+        padding: '12px 16px',
         display: 'flex',
         alignItems: 'flex-start',
-        gap: '8px',
+        gap: '10px',
       }}>
-        <span style={{ color: '#ef4444', flexShrink: 0, marginTop: '1px' }}><AlertIcon /></span>
-        <p style={{ margin: 0, fontSize: '11px', color: '#b91c1c', lineHeight: 1.5 }}>
-          82% of spending concentrated in <strong>high-risk categories</strong>. Pattern consistent with financial obfuscation.
+        <div style={{ color: 'var(--risk-high)', flexShrink: 0, marginTop: '1px' }}><AlertIcon /></div>
+        <p style={{ margin: 0, fontSize: '12px', color: 'var(--risk-high)', lineHeight: 1.5, fontWeight: 500 }}>
+          High Concentration: <strong style={{ fontWeight: 800 }}>82%</strong> of spending is in high-risk categories, matching patterns of financial obfuscation.
         </p>
       </div>
     </div>

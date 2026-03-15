@@ -8,9 +8,9 @@ interface TopBarProps {
 }
 
 const riskConfig = {
-  HIGH: { label: 'HIGH RISK', bg: '#fef2f2', border: '#fecaca', text: '#dc2626', dot: '#ef4444' },
-  MEDIUM: { label: 'MEDIUM RISK', bg: '#fffbeb', border: '#fde68a', text: '#d97706', dot: '#f59e0b' },
-  LOW: { label: 'LOW RISK', bg: '#f0fdf4', border: '#bbf7d0', text: '#16a34a', dot: '#22c55e' },
+  HIGH: { label: 'HIGH RISK', bg: 'var(--risk-high-bg)', border: 'var(--risk-high-border)', text: 'var(--risk-high)', dot: 'var(--risk-high)' },
+  MEDIUM: { label: 'MEDIUM RISK', bg: 'var(--risk-medium-bg)', border: 'rgba(255, 149, 0, 0.2)', text: 'var(--risk-medium)', dot: 'var(--risk-medium)' },
+  LOW: { label: 'LOW RISK', bg: 'var(--risk-low-bg)', border: 'var(--risk-low-border)', text: 'var(--risk-low)', dot: 'var(--risk-low)' },
 };
 
 const CheckIcon = () => (
@@ -29,34 +29,45 @@ const TopBar: React.FC<TopBarProps> = ({
 
   return (
     <header style={{
-      background: '#ffffff',
-      borderBottom: '1px solid #e4e9f2',
-      padding: '0 24px',
+      background: 'var(--apple-bg-dark)',
+      backdropFilter: 'var(--apple-blur)',
+      borderBottom: '1px solid var(--sidebar-border)',
+      padding: '0 32px',
       display: 'flex',
       alignItems: 'center',
-      gap: '16px',
-      height: '64px',
+      gap: '20px',
+      height: '72px',
       flexShrink: 0,
+      position: 'sticky',
+      top: 0,
+      zIndex: 10,
     }}>
-      {/* Title */}
+      {/* Title Area */}
       <div style={{ flex: 1 }}>
-        <h1 style={{ margin: 0, fontSize: '18px', fontWeight: 700, color: '#0f1117', lineHeight: 1.2 }}>
+        <h1 style={{ 
+          margin: 0, 
+          fontSize: '20px', 
+          fontWeight: 700, 
+          color: 'var(--text-primary)', 
+          lineHeight: 1.1,
+          letterSpacing: '-0.02em'
+        }}>
           CDD &amp; OSINT Investigation
         </h1>
+        <div style={{ fontSize: '12px', color: 'var(--text-secondary)', marginTop: '2px' }}>Vestra Intelligence Platform</div>
       </div>
 
       {/* Entity Badge */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-        <div style={{ fontSize: '11px', color: '#6b7280' }}>Entity:</div>
+      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+        <span style={{ fontSize: '12px', color: 'var(--text-secondary)', fontWeight: 500 }}>Entity:</span>
         <div style={{
-          background: '#eff6ff',
-          border: '1px solid #bfdbfe',
-          borderRadius: '6px',
-          padding: '4px 10px',
-          color: '#1d4ed8',
-          fontSize: '11px',
-          fontWeight: 700,
-          letterSpacing: '0.05em',
+          background: 'rgba(0, 122, 255, 0.1)',
+          borderRadius: '20px',
+          padding: '6px 14px',
+          color: 'var(--apple-blue)',
+          fontSize: '12px',
+          fontWeight: 600,
+          border: '1px solid rgba(0, 122, 255, 0.2)',
         }}>
           {entityName || 'NO ENTITY SELECTED'}
         </div>
@@ -66,45 +77,53 @@ const TopBar: React.FC<TopBarProps> = ({
       <div style={{
         display: 'flex',
         alignItems: 'center',
-        gap: '6px',
+        gap: '8px',
         background: risk.bg,
-        border: `1px solid ${risk.border}`,
         borderRadius: '20px',
-        padding: '5px 12px',
+        padding: '6px 14px',
         color: risk.text,
-        fontSize: '11px',
-        fontWeight: 700,
+        fontSize: '12px',
+        fontWeight: 600,
+        border: `1px solid ${risk.border}`,
       }}>
         <span style={{
           width: '8px', height: '8px', borderRadius: '50%',
           background: risk.dot, display: 'inline-block',
           animation: 'status-pulse 1.5s infinite',
+          boxShadow: `0 0 8px ${risk.dot}`,
         }} />
         {risk.label}
       </div>
 
-      {/* Actions */}      <button
+      {/* Actions */}
+      <button
         onClick={onHITLConfirm}
         style={{
           display: 'flex',
           alignItems: 'center',
-          gap: '6px',
-          padding: '7px 16px',
-          borderRadius: '8px',
+          gap: '8px',
+          padding: '8px 20px',
+          borderRadius: '20px',
           border: 'none',
-          background: 'linear-gradient(135deg, #7c3aed, #6d28d9)',
+          background: 'linear-gradient(135deg, #007aff, #0051d7)',
           color: '#fff',
-          fontSize: '12px',
+          fontSize: '13px',
           fontWeight: 600,
           cursor: 'pointer',
-          boxShadow: '0 2px 8px rgba(124,58,237,0.35)',
-          transition: 'all 0.15s ease',
+          boxShadow: '0 4px 14px rgba(0,122,255,0.3)',
+          transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
         }}
-        onMouseEnter={e => (e.currentTarget.style.opacity = '0.9')}
-        onMouseLeave={e => (e.currentTarget.style.opacity = '1')}
+        onMouseEnter={e => {
+          e.currentTarget.style.transform = 'translateY(-1px)';
+          e.currentTarget.style.boxShadow = '0 6px 20px rgba(0,122,255,0.4)';
+        }}
+        onMouseLeave={e => {
+          e.currentTarget.style.transform = 'translateY(0)';
+          e.currentTarget.style.boxShadow = '0 4px 14px rgba(0,122,255,0.3)';
+        }}
       >
         <CheckIcon />
-        Human-in-the-Loop Confirm
+        Confirm
       </button>
 
       {children}
