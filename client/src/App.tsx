@@ -3,14 +3,16 @@ import DashboardAML from './DashboardAML';
 import Sidebar from './Sidebar';
 import NetworkView from './views/NetworkView';
 import OsintView from './views/OsintView';
+import TemporalGraphView from './views/TemporalGraphView';
 
 function App() {
   return (
-    <div style={{
+    <div className="dark" style={{
       display: 'flex',
       height: '100vh',
       overflow: 'hidden',
       background: 'var(--main-bg)',
+      color: 'var(--text-primary)',
     }}>
       {/* Dark Sidebar */}
       <Sidebar />
@@ -21,12 +23,13 @@ function App() {
         display: 'flex',
         flexDirection: 'column',
         overflow: 'hidden',
-        background: '#f0f2f7',
+        background: 'var(--main-bg)',
       }}>
         <Routes>
           <Route path="/" element={<DashboardAML />} />
           <Route path="/network" element={<NetworkView />} />
           <Route path="/osint" element={<OsintView />} />
+          <Route path="/temporal" element={<TemporalGraphView />} />
         </Routes>
       </div>
     </div>

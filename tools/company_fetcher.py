@@ -49,16 +49,37 @@ def fetch_company_data(company_name: str) -> dict[str, Any]:
 # Internal helpers
 # ---------------------------------------------------------------------------
 
+from database import SessionLocal
+from models import CompanyProfile
+
+
 def _query_registry(company_name: str) -> dict[str, Any]:
-    """Mock registry query.  Replace with real HTTP calls in production."""
-    # Deterministic dynamic data
-    reg_num = f"RO{sum(ord(c) for c in company_name) % 99999999:08d}"
-    return {
-        "name": company_name,
-        "status": "active",
-        "directors": ["Jane Doe", "John Smith"] if len(company_name) % 2 == 0 else ["Alice Vane", "Bob Ross"],
-        "registration_number": reg_num,
-        "country": "RO",
-        "address": f"Str. {company_name} nr. {len(company_name)}, București",
-        "sanctions_hits": [],
-    }
+    """Registry query that checks the local database first.
+    
+    If the company exists in our CompanyProfile table (populated by mock scripts),
+    we return that data directly to simulate a successful OSINT fetch.
+    """
+    db = SessionLocal()
+    try:
+        # Search for exact case-insensitive match
+        company = db.query(CompanyProfile).filter(
+            CompanyProfile.company_name.ilike(company_name)
+        ).first()
+
+        if company:
+            # Return full record as a dict (matching CompanyProfile.to_dict format)
+            return company.to_dict()
+
+        # Fallback to deterministic mock if not found in DB
+        reg_num = f"RO{sum(ord(c) for c in company_name) % 99999999:08d}"
+        return {
+            "name": company_name,
+            "status": "active",
+            "directors": ["Jane Doe", "John Smith"] if len(company_name) % 2 == 0 else ["Alice Vane", "Bob Ross"],
+            "registration_number": reg_num,
+            "country": "RO",
+            "address": f"Str. {company_name} nr. {len(company_name)}, București",
+            "sanctions_hits": [],
+        }
+    finally:
+        db.close()

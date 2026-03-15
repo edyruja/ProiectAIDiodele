@@ -27,82 +27,116 @@ const OsintView: React.FC = () => {
     record.findings.toLowerCase().includes(search.toLowerCase())
   );
 
+  const handleExportCSV = () => {
+    // CSV Header
+    const headers = ['Record ID', 'Target Entity', 'Source Engine', 'Timestamp', 'Confidence', 'Extracted Intelligence'];
+    
+    // CSV Rows
+    const rows = filteredData.map(record => [
+      record.id,
+      record.entity,
+      record.source,
+      record.timestamp,
+      record.confidence,
+      `"${record.findings.replace(/"/g, '""')}"` // Escape quotes and wrap in quotes
+    ]);
+
+    const csvContent = [
+      headers.join(','),
+      ...rows.map(row => row.join(','))
+    ].join('\n');
+
+    // Create a blob and trigger download
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.setAttribute('download', `osint_export_${new Date().toISOString().split('T')[0]}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+  };
+
   return (
-    <div className="flex flex-col h-screen w-full bg-slate-50">
+    <div className="flex flex-col h-screen w-full bg-[var(--main-bg)]">
       <TopBar entityName="GLOBAL INTELLIGENCE HUB" riskLevel="MEDIUM">
-        <div className="ml-auto flex items-center gap-4 text-sm text-slate-500 font-medium">
+        <div className="ml-auto flex items-center gap-4 text-sm text-[var(--text-secondary)] font-medium">
           OSINT Data Bridge
         </div>
       </TopBar>
 
-      <div className="flex-1 overflow-auto p-8">
+      <div className="flex-1 overflow-auto p-8 scrollbar-thin">
         <div className="max-w-6xl mx-auto">
           {/* Header Area */}
-          <div className="flex items-center justify-between mb-8">
+          <div className="flex items-center justify-between mb-10">
             <div>
-              <h2 className="text-2xl font-bold text-slate-900">Intelligence Data Vault</h2>
-              <p className="text-sm text-slate-500 mt-1">Explore raw open-source intelligence and extracted entities.</p>
+              <h2 className="text-[28px] font-bold text-[var(--text-primary)] tracking-tight">Intelligence Data Vault</h2>
+              <p className="text-[14px] text-[var(--text-secondary)] mt-1 opacity-80">Explore raw open-source intelligence and extracted entities.</p>
             </div>
-            <div className="flex gap-3">
-              <button className="flex items-center gap-2 px-4 py-2 border border-slate-200 bg-white rounded-lg text-sm font-medium hover:bg-slate-50 transition-colors">
+            <div className="flex gap-4">
+              <button className="flex items-center gap-2 px-5 py-2.5 border border-[var(--sidebar-border)] bg-white/5 backdrop-blur-md rounded-xl text-[13px] font-semibold text-[var(--text-primary)] hover:bg-white/10 transition-all shadow-sm">
                 <Filter className="w-4 h-4" /> Filter
               </button>
-              <button className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700 transition-colors shadow-sm">
+              <button 
+                onClick={handleExportCSV}
+                className="flex items-center gap-2 px-5 py-2.5 bg-[var(--apple-blue)] text-white rounded-xl text-[13px] font-bold hover:bg-[#0062cc] transition-all shadow-lg shadow-blue-500/10 active:scale-95"
+              >
                 <Download className="w-4 h-4" /> Export CSV
               </button>
             </div>
           </div>
 
           {/* Search Bar */}
-          <div className="mb-6 relative">
-            <Search className="w-5 h-5 absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" />
+          <div className="mb-8 relative">
+            <Search className="w-5 h-5 absolute left-5 top-1/2 -translate-y-1/2 text-[var(--text-secondary)] opacity-50" />
             <input 
               type="text" 
               placeholder="Search intelligence records by entity name or finding..." 
               value={search}
               onChange={e => setSearch(e.target.value)}
-              className="w-full pl-12 pr-4 py-3 bg-white border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all shadow-sm"
+              className="w-full pl-14 pr-6 py-4 bg-white/5 border border-[var(--sidebar-border)] rounded-2xl text-[14px] text-[var(--text-primary)] focus:outline-none focus:ring-2 focus:ring-[var(--apple-blue)] focus:border-transparent transition-all shadow-xl placeholder:text-[var(--text-secondary)] placeholder:opacity-40"
             />
           </div>
 
           {/* Data Table */}
-          <div className="bg-white border border-slate-200 rounded-xl shadow-sm overflow-hidden">
+          <div className="bg-[var(--card-bg)] border border-[var(--card-border)] rounded-2xl shadow-2xl overflow-hidden backdrop-blur-[var(--apple-blur)]">
             <table className="w-full text-left border-collapse">
               <thead>
-                <tr className="bg-slate-50 border-b border-slate-200">
-                  <th className="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider">Record ID</th>
-                  <th className="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider">Target Entity</th>
-                  <th className="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider">Source Engine</th>
-                  <th className="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider">Confidence</th>
-                  <th className="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider">Extracted Intelligence</th>
+                <tr className="bg-white/[0.03] border-b border-[var(--card-border)]">
+                  <th className="px-8 py-5 text-[11px] font-bold text-[var(--text-secondary)] uppercase tracking-[0.08em]">Record ID</th>
+                  <th className="px-8 py-5 text-[11px] font-bold text-[var(--text-secondary)] uppercase tracking-[0.08em]">Target Entity</th>
+                  <th className="px-8 py-5 text-[11px] font-bold text-[var(--text-secondary)] uppercase tracking-[0.08em]">Source Engine</th>
+                  <th className="px-8 py-5 text-[11px] font-bold text-[var(--text-secondary)] uppercase tracking-[0.08em]">Confidence</th>
+                  <th className="px-8 py-5 text-[11px] font-bold text-[var(--text-secondary)] uppercase tracking-[0.08em]">Extracted Intelligence</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-slate-100">
+              <tbody className="divide-y divide-white/[0.04]">
                 {filteredData.map(record => (
-                  <tr key={record.id} className="hover:bg-slate-50 transition-colors group cursor-pointer">
-                    <td className="px-6 py-4 text-sm font-mono text-slate-500 whitespace-nowrap">{record.id}</td>
-                    <td className="px-6 py-4">
-                      <div className="text-sm font-bold text-slate-900">{record.entity}</div>
-                      <div className="text-xs text-slate-400 mt-1">{new Date(record.timestamp).toLocaleString()}</div>
+                  <tr key={record.id} className="hover:bg-white/[0.02] transition-colors group cursor-pointer">
+                    <td className="px-8 py-5 text-[13px] font-mono text-[var(--text-secondary)] opacity-60 whitespace-nowrap">{record.id}</td>
+                    <td className="px-8 py-5">
+                      <div className="text-[15px] font-bold text-[var(--text-primary)]">{record.entity}</div>
+                      <div className="text-[12px] text-[var(--text-secondary)] mt-1 opacity-50">{new Date(record.timestamp).toLocaleString()}</div>
                     </td>
-                    <td className="px-6 py-4 text-sm text-slate-600 whitespace-nowrap">
-                      <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-slate-100 text-slate-600 text-xs font-medium border border-slate-200">
+                    <td className="px-8 py-5 text-[13px] text-[var(--text-primary)] whitespace-nowrap">
+                      <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/5 text-[var(--text-secondary)] text-[11px] font-bold border border-white/5">
                         {record.source}
                       </span>
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      {record.confidence === 'HIGH' && <span className="text-[10px] font-bold tracking-wider px-2 py-1 rounded-full bg-red-100 text-red-700 border border-red-200">HIGH</span>}
-                      {record.confidence === 'MEDIUM' && <span className="text-[10px] font-bold tracking-wider px-2 py-1 rounded-full bg-amber-100 text-amber-700 border border-amber-200">MEDIUM</span>}
-                      {record.confidence === 'LOW' && <span className="text-[10px] font-bold tracking-wider px-2 py-1 rounded-full bg-green-100 text-green-700 border border-green-200">LOW</span>}
+                    <td className="px-8 py-5 whitespace-nowrap">
+                      {record.confidence === 'HIGH' && <span className="text-[10px] font-bold tracking-wider px-3 py-1 rounded-full bg-[var(--risk-low-bg)] text-[var(--risk-low)] border border-[var(--risk-low-border)]">HIGH</span>}
+                      {record.confidence === 'MEDIUM' && <span className="text-[10px] font-bold tracking-wider px-3 py-1 rounded-full bg-[var(--risk-medium-bg)] text-[var(--risk-medium)] border border-[var(--risk-medium-border)]">MEDIUM</span>}
+                      {record.confidence === 'LOW' && <span className="text-[10px] font-bold tracking-wider px-3 py-1 rounded-full bg-[var(--risk-high-bg)] text-[var(--risk-high)] border border-[var(--risk-high-border)]">LOW</span>}
                     </td>
-                    <td className="px-6 py-4 text-sm text-slate-600 max-w-md">
+                    <td className="px-8 py-5 text-[14px] text-[var(--text-primary)] max-w-md opacity-90">
                       <p className="line-clamp-2 leading-relaxed">{record.findings}</p>
                     </td>
                   </tr>
                 ))}
                 {filteredData.length === 0 && (
                   <tr>
-                    <td colSpan={5} className="px-6 py-12 text-center text-slate-500 text-sm">
+                    <td colSpan={5} className="px-8 py-16 text-center text-[var(--text-secondary)] opacity-60 text-sm">
                       No intelligence records found matching your search.
                     </td>
                   </tr>

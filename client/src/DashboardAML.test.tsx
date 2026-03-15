@@ -18,17 +18,20 @@ describe('DashboardAML Component', () => {
   it('Test 1: Verify that an input form exists containing a text field to enter a "company name" and a submit button', () => {
     render(<DashboardAML />);
     
-    // Check for input field
-    const inputField = screen.getByPlaceholderText(/company name/i);
+    // Check for input field – the actual placeholder is "Analyze company..."
+    const inputField = screen.getByPlaceholderText(/analyze company/i);
     expect(inputField).toBeInTheDocument();
     
-    // Check for submit button
-    const submitButton = screen.getByRole('button', { name: /submit/i });
+    // Check for submit button – the actual button text is "Analyze"
+    const submitButton = screen.getByRole('button', { name: /analyze/i });
     expect(submitButton).toBeInTheDocument();
   });
 
   it('Test 2: Simulate submitting the form with mock data and verify UI eventually displays AML Risk Score and Explanation', async () => {
-    const mockResponse = {
+    vi.useFakeTimers(); // Enable fake timers for this test
+
+    const taskId = 'mock-task-123';
+    const mockStatusResponse = {
       status: 'SUCCESS',
       result: {
         analysis: {
@@ -42,34 +45,35 @@ describe('DashboardAML Component', () => {
       }
     };
 
-    // Mock VITE_SYNC_MODE
-    vi.stubGlobal('import.meta', {
-      env: { VITE_SYNC_MODE: 'true' }
-    });
-
-    // Setup the fetch mock to return our dummy JSON response matching API contract
-    (global.fetch as any).mockResolvedValueOnce({
-      ok: true,
-      json: async () => mockResponse,
-    });
+    // First call: POST /analyze-company → returns task_id
+    // Second call: GET /analysis-status/:id → returns SUCCESS with analysis
+    (global.fetch as any)
+      .mockResolvedValueOnce({ ok: true, json: async () => ({ task_id: taskId }) })
+      .mockResolvedValueOnce({ ok: true, json: async () => mockStatusResponse });
 
     render(<DashboardAML />);
-    
-    const inputField = screen.getByPlaceholderText(/company name/i);
-    const submitButton = screen.getByRole('button', { name: /submit/i });
+
+    const inputField = screen.getByPlaceholderText(/analyze company/i);
+    const submitButton = screen.getByRole('button', { name: /analyze/i });
 
     // Simulate user input and submit
     fireEvent.change(inputField, { target: { value: 'Test Company LLC' } });
     fireEvent.click(submitButton);
 
-    // Verify fetch was called once
+    // Verify the POST fetch was called
     expect(global.fetch).toHaveBeenCalledTimes(1);
 
-    // Verify the UI displays the required sections
-    await waitFor(() => {
-      expect(screen.getByText(/AML Risk Score/i)).toBeInTheDocument();
-      expect(screen.getByText(/Explanation \(Chain of Thought\)/i)).toBeInTheDocument();
-      expect(screen.getByText(/85/i)).toBeInTheDocument();
-    });
+    // Advance timers to trigger the polling.
+    // Assuming the polling interval is 2000ms (2 seconds) based on typical implementation.
+    // We need to advance enough time for the polling to happen and the second fetch to resolve.
+    vi.advanceTimersByTime(2500); // Advance by 2.5 seconds, allowing for one poll cycle.
+
+    // Verify the UI displays the required sections after polling resolves
+    // No need for await waitFor anymore, as timers are advanced.
+    expect(screen.getByText(/AML Risk Score/i)).toBeInTheDocument();
+    expect(screen.getByText(/Explanation \(Chain of Thought\)/i)).toBeInTheDocument();
+    expect(screen.getByText(/85/i)).toBeInTheDocument();
+
+    vi.useRealTimers(); // Restore real timers after this test
   });
 });

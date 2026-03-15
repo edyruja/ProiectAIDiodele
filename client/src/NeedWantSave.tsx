@@ -17,7 +17,7 @@ const DonutChart: React.FC<DonutProps> = ({ percentage, color, label, sublabel }
     <div style={{ textAlign: 'center', flex: 1 }}>
       <svg width="72" height="72" viewBox="0 0 72 72" style={{ display: 'block', margin: '0 auto' }}>
         {/* Track */}
-        <circle cx="36" cy="36" r={RADIUS} fill="none" stroke="#f3f4f6" strokeWidth="8" />
+        <circle cx="36" cy="36" r={RADIUS} fill="none" stroke="var(--sidebar-border)" strokeWidth="8" />
         {/* Progress */}
         <circle
           cx="36"
@@ -36,8 +36,8 @@ const DonutChart: React.FC<DonutProps> = ({ percentage, color, label, sublabel }
           {percentage}%
         </text>
       </svg>
-      <div style={{ fontSize: '11px', fontWeight: 700, color: '#374151', marginTop: '6px', letterSpacing: '0.05em' }}>{label}</div>
-      <div style={{ fontSize: '10px', color: '#9ca3af', marginTop: '2px' }}>{sublabel}</div>
+      <div style={{ fontSize: '11px', fontWeight: 700, color: 'var(--text-primary)', marginTop: '6px', letterSpacing: '0.05em' }}>{label}</div>
+      <div style={{ fontSize: '10px', color: 'var(--text-secondary)', marginTop: '2px' }}>{sublabel}</div>
     </div>
   );
 };
@@ -45,34 +45,36 @@ const DonutChart: React.FC<DonutProps> = ({ percentage, color, label, sublabel }
 const NeedWantSave: React.FC = () => {
   return (
     <div style={{
-      background: '#fff',
-      borderRadius: '12px',
-      border: '1px solid #e4e9f2',
-      padding: '20px',
-      boxShadow: '0 1px 4px rgba(0,0,0,0.06)',
+      background: 'var(--card-bg)',
+      borderRadius: '20px',
+      border: '1px solid var(--card-border)',
+      padding: '24px 32px',
+      boxShadow: 'var(--card-shadow)',
+      backdropFilter: 'var(--apple-blur)',
     }}>
-      <div style={{ fontSize: '11px', fontWeight: 700, color: '#374151', letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: '16px' }}>
-        Need-Want-Save
+      <div style={{ fontSize: '13px', fontWeight: 700, color: 'var(--text-primary)', letterSpacing: '-0.01em', marginBottom: '24px' }}>
+        Spending Methodology Analysis
       </div>
 
       {/* Donut Charts Row */}
-      <div style={{ display: 'flex', alignItems: 'flex-end', gap: '8px', marginBottom: '14px' }}>
-        <DonutChart percentage={15} color="#3b82f6" label="NEED" sublabel="Essential" />
-        <DonutChart percentage={80} color="#ef4444" label="WANT" sublabel="Luxury/Crypto" />
-        <DonutChart percentage={5} color="#10b981" label="SAVE" sublabel="Reserves" />
+      <div style={{ display: 'flex', alignItems: 'flex-end', gap: '16px', marginBottom: '24px' }}>
+        <DonutChart percentage={15} color="var(--apple-blue)" label="ESSENTIAL" sublabel="Standard Need" />
+        <DonutChart percentage={80} color="var(--risk-high)" label="ANOMALOUS" sublabel="High-Risk Want" />
+        <DonutChart percentage={5} color="var(--risk-low)" label="RESERVE" sublabel="Savings" />
       </div>
 
       {/* Warning Label */}
       <div style={{
-        background: '#fef3f2',
-        border: '1px solid #fecaca',
-        borderRadius: '8px',
-        padding: '10px 12px',
-        fontSize: '11px',
-        color: '#b91c1c',
+        background: 'var(--risk-high-bg)',
+        border: '1px solid var(--risk-high-border)',
+        borderRadius: '16px',
+        padding: '12px 16px',
+        fontSize: '12px',
+        color: 'var(--risk-high)',
         lineHeight: 1.5,
+        fontWeight: 500,
       }}>
-        High &ldquo;Want&rdquo; distribution indicates <strong>luxury/crypto asset integration</strong>.
+        Critical Analysis: High <strong style={{ fontWeight: 800 }}>&ldquo;Anomalous&rdquo;</strong> distribution indicates significant integration of offshore or luxury asset movements.
       </div>
     </div>
   );

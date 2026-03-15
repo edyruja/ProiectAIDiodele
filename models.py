@@ -10,7 +10,7 @@ All models inherit from `Base` (declared in database.py).
 """
 
 from datetime import datetime, timezone
-from sqlalchemy import Column, Integer, String, Float, DateTime, Text
+from sqlalchemy import Column, Integer, String, Float, DateTime, Text, Boolean
 from database import Base
 
 
@@ -50,6 +50,21 @@ class CompanyProfile(Base):
     directors = Column(Text, nullable=True)            # JSON string of director list
     source_url = Column(String(500), nullable=True)    # OSINT source
 
+    # Entity classification
+    entity_type = Column(String(50), nullable=True)    # SRL, SA, PFA, ONG, etc.
+    industry = Column(String(100), nullable=True)      # Real Estate, Crypto, etc.
+
+    # AML flags
+    sanctions_hit = Column(Boolean, nullable=True, default=False)
+    pep_exposure = Column(Boolean, nullable=True, default=False)
+    incorporation_date = Column(DateTime, nullable=True)
+
+    # Financial data
+    revenue = Column(Float, nullable=True)                        # annual revenue USD
+    average_monthly_spend = Column(Float, nullable=True)          # avg monthly spend USD
+    expense_categories = Column(Text, nullable=True)              # JSON: {category: pct}
+    budget_breakdown = Column(Text, nullable=True)                # JSON: {need, want, save}
+
     # Timestamps
     created_at = Column(
         DateTime,
@@ -72,6 +87,16 @@ class CompanyProfile(Base):
 
     def to_dict(self) -> dict:
         """Serialize the model to a plain dictionary (used by FastAPI responses)."""
+        import json as _json
+
+        def _parse_json(val):
+            if val is None:
+                return None
+            try:
+                return _json.loads(val)
+            except (ValueError, TypeError):
+                return val
+
         return {
             "id": self.id,
             "company_name": self.company_name,
@@ -82,6 +107,18 @@ class CompanyProfile(Base):
             "risk_label": self.risk_label,
             "risk_explanation": self.risk_explanation,
             "address": self.address,
+            "directors": _parse_json(self.directors),
+            "entity_type": self.entity_type,
+            "industry": self.industry,
+            "sanctions_hit": self.sanctions_hit,
+            "pep_exposure": self.pep_exposure,
+            "incorporation_date": (
+                self.incorporation_date.isoformat() if self.incorporation_date else None
+            ),
+            "revenue": self.revenue,
+            "average_monthly_spend": self.average_monthly_spend,
+            "expense_categories": _parse_json(self.expense_categories),
+            "budget_breakdown": _parse_json(self.budget_breakdown),
             "created_at": self.created_at.isoformat() if self.created_at else None,
             "updated_at": self.updated_at.isoformat() if self.updated_at else None,
         }
