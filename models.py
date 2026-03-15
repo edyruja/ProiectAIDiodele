@@ -1,0 +1,124 @@
+"""
+models.py – SQLAlchemy ORM models for the Antigravity AML System.
+
+Phase 3: Database Integration
+
+Models defined here:
+  - CompanyProfile : Core entity for storing company data and AML risk scores.
+
+All models inherit from `Base` (declared in database.py).
+"""
+
+from datetime import datetime, timezone
+from sqlalchemy import Column, Integer, String, Float, DateTime, Text, Boolean
+from database import Base
+
+
+# ---------------------------------------------------------------------------
+# CompanyProfile ORM Model
+# ---------------------------------------------------------------------------
+
+class CompanyProfile(Base):
+    """
+    Stores structured data about a company under AML investigation.
+
+    Populated by the OSINT pipeline (Phase 4) and annotated by the
+    Analyst Agent (Phase 5) with a risk_score and chain-of-thought
+    explanation.
+    """
+
+    __tablename__ = "company_profiles"
+
+    # Primary key
+    id = Column(Integer, primary_key=True, autoincrement=True)
+
+    # Core identification fields (required by test_database.py)
+    company_name = Column(String(255), nullable=False, index=True)
+    registration_number = Column(String(100), nullable=True, unique=True, index=True)
+    country = Column(String(100), nullable=True)
+
+    # AML risk assessment
+    risk_score = Column(Float, nullable=True)          # 0.0 – 1.0 range
+    risk_label = Column(String(50), nullable=True)     # "LOW" | "MEDIUM" | "HIGH"
+    risk_explanation = Column(Text, nullable=True)     # Chain-of-thought from agent
+
+    # Company status from registry
+    status = Column(String(50), nullable=True)         # "active" | "dissolved" | etc.
+
+    # Additional metadata
+    address = Column(String(500), nullable=True)
+    directors = Column(Text, nullable=True)            # JSON string of director list
+    source_url = Column(String(500), nullable=True)    # OSINT source
+
+    # Entity classification
+    entity_type = Column(String(50), nullable=True)    # SRL, SA, PFA, ONG, etc.
+    industry = Column(String(100), nullable=True)      # Real Estate, Crypto, etc.
+
+    # AML flags
+    sanctions_hit = Column(Boolean, nullable=True, default=False)
+    pep_exposure = Column(Boolean, nullable=True, default=False)
+    incorporation_date = Column(DateTime, nullable=True)
+
+    # Financial data
+    revenue = Column(Float, nullable=True)                        # annual revenue USD
+    average_monthly_spend = Column(Float, nullable=True)          # avg monthly spend USD
+    expense_categories = Column(Text, nullable=True)              # JSON: {category: pct}
+    budget_breakdown = Column(Text, nullable=True)                # JSON: {need, want, save}
+
+    # Timestamps
+    created_at = Column(
+        DateTime,
+        default=lambda: datetime.now(timezone.utc),
+        nullable=False,
+    )
+    updated_at = Column(
+        DateTime,
+        default=lambda: datetime.now(timezone.utc),
+        onupdate=lambda: datetime.now(timezone.utc),
+        nullable=True,
+    )
+
+    def __repr__(self) -> str:
+        return (
+            f"<CompanyProfile(id={self.id!r}, "
+            f"company_name={self.company_name!r}, "
+            f"risk_score={self.risk_score!r})>"
+        )
+
+    def to_dict(self) -> dict:
+        """Serialize the model to a plain dictionary (used by FastAPI responses)."""
+        import json as _json
+
+        def _parse_json(val):
+            if val is None:
+                return None
+            try:
+                return _json.loads(val)
+            except (ValueError, TypeError):
+                return val
+
+        return {
+            "id": self.id,
+            "company_name": self.company_name,
+            "registration_number": self.registration_number,
+            "country": self.country,
+            "status": self.status,
+            "risk_score": self.risk_score,
+            "risk_label": self.risk_label,
+            "risk_explanation": self.risk_explanation,
+            "address": self.address,
+            "directors": _parse_json(self.directors),
+            "entity_type": self.entity_type,
+            "industry": self.industry,
+            "sanctions_hit": self.sanctions_hit,
+            "pep_exposure": self.pep_exposure,
+            "incorporation_date": (
+                self.incorporation_date.isoformat() if self.incorporation_date else None
+            ),
+            "revenue": self.revenue,
+            "average_monthly_spend": self.average_monthly_spend,
+            "expense_categories": _parse_json(self.expense_categories),
+            "budget_breakdown": _parse_json(self.budget_breakdown),
+            "created_at": self.created_at.isoformat() if self.created_at else None,
+            "updated_at": self.updated_at.isoformat() if self.updated_at else None,
+        }
